@@ -1,5 +1,70 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+#  DCMotor.jl – Módulo principal para control e identificación de motor DC.
+#
+#  LB 2026 – MIT License
+# ═══════════════════════════════════════════════════════════════════════════════
+
 module DCMotor
 
-# Write your package code here.
+# ── Dependencias externas ────────────────────────────────────────────────────
+using LibSerialPort
+using JSON3
+using Interpolations
+using DelimitedFiles
+using ControlSystems
+using ControlSystemsBase
+using LinearAlgebra
+using Plots
+using Statistics
+using Printf
+using RobustAndOptimalControl
+using ControlSystemIdentification
+using LaTeXStrings
+using Base64
+using HypertextLiteral: @htl
 
-end
+
+
+
+# ── Código fuente ────────────────────────────────────────────────────────────
+include("motorsys.jl")
+include("controlsys.jl")
+include("identsys.jl")
+include("graphics.jl")
+
+# ── API pública ──────────────────────────────────────────────────────────────
+
+# Constantes
+export SAMPLING_TIME, BUFFER_SIZE, PRBS_LENGTH
+
+# Tipo principal
+export MotorSystem
+
+# Conexión
+export connect!, disconnect!
+
+# Conversiones hex (utilidades)
+export float2hex, hex2float, long2hex, hex2long
+export signal2hex, time2hex, matrix2hex, hexframe_to_array
+
+# Lectura de archivos
+export read_csv_file, read_csv_file3
+
+#figuras
+export redraw!, screen_pluto, entorno
+
+# Comandos de comunicación
+export send_command!, receive_frames!
+
+# Modelos de la planta
+export transfer_function, speed_from_volts, volts_from_speed
+
+# Funciones de control (controlsys)
+export set_reference, set_pid, set_controller
+export step_closed, stairs_closed, profile_closed, stepinfo_exp
+
+# Funciones de identificación (identsys)
+export step_open, prbs_open
+export get_static_model, get_fomodel_step, get_model_prbs
+
+end # module DCMotor
