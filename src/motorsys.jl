@@ -16,13 +16,25 @@ const BUFFER_SIZE   = 20
 const PRBS_LENGTH   = 1023
 const FONT_SIZE     = 12
 
-# ── Rutas por defecto ────────────────────────────────────────────────────────
-const PATH_DEFAULT = joinpath(@__DIR__, "..", "experiment_files") * "/"
-const PATH_DATA    = joinpath(@__DIR__, "..", "datafiles") * "/"
+# ── Rutas de datos ───────────────────────────────────────────────────────────
+# Datos de ejemplo empacados con el paquete (solo lectura).
+const PATH_BUNDLED_DATA = joinpath(@__DIR__, "..", "datafiles") * "/"
 
+# Carpeta de datos del usuario (lectura/escritura), configurable con la
+# variable de entorno DCMOTOR_DATA_DIR. Por defecto vive en el home del
+# usuario, para que siempre sea escribible sin importar cómo se instaló
+# el paquete (Pkg.add, dev, depot compartido, etc.).
+const PATH_DATA = joinpath(get(ENV, "DCMOTOR_DATA_DIR", joinpath(homedir(), ".dcmotor")), "datafiles") * "/"
+
+"""Crea la carpeta de datos del usuario y copia ahí los archivos de
+ejemplo empacados con el paquete, sin sobrescribir resultados propios
+ya guardados."""
 function _ensure_dirs()
-    mkpath(PATH_DEFAULT)
     mkpath(PATH_DATA)
+    for file in readdir(PATH_BUNDLED_DATA)
+        dest = PATH_DATA * file
+        isfile(dest) || cp(PATH_BUNDLED_DATA * file, dest)
+    end
 end
 
 
@@ -387,15 +399,13 @@ end
 
 # ── Guardar experimentos ─────────────────────────────────────────────────────
 
-"""Guarda las columnas como CSV en PATH_DATA y PATH_DEFAULT."""
+"""Guarda las columnas como CSV en PATH_DATA."""
 function save_experiment(columns::Vector, filename::String, header::String)
     mat = hcat(columns...)
-    for path in (PATH_DATA, PATH_DEFAULT)
-        open(path * filename, "w") do io
-            println(io, header)
-            for i in axes(mat, 1)
-                println(io, join([@sprintf("%.8f", mat[i, j]) for j in axes(mat, 2)], ","))
-            end
+    open(PATH_DATA * filename, "w") do io
+        println(io, header)
+        for i in axes(mat, 1)
+            println(io, join([@sprintf("%.8f", mat[i, j]) for j in axes(mat, 2)], ","))
         end
     end
     return nothing
