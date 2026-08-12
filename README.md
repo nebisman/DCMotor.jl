@@ -14,7 +14,7 @@ Adicionalmente, las constantes de tiempo están muy sintonizadas con la percepci
 
 ## Componentes de la plataforma
 
-<img src="docs/assets/motor.png" alt="Plataforma DCMotor" width="800">
+<img src="docs/assets/motor.png" alt="Plataforma DCMotor" width="600">
 
 | # | Componente |
 |---|---|
