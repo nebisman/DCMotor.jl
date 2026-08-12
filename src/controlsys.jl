@@ -224,7 +224,7 @@ function step_closed(sys::MotorSystem;
         println("Error: ", e)    
 
     end
-    set_reference(sys, 0.0)  # Volver a referencia cero al finalizar
+    set_reference(sys, 0.0) # Volver a referencia cero al finalizar
 
     save_experiment([tv, rv, yv, uv], "DCmotor_step_closed_exp.csv", "t,r,y,u")
     return tv, rv, yv, uv

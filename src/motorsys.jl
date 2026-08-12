@@ -17,12 +17,36 @@ const PRBS_LENGTH   = 1023
 const FONT_SIZE     = 12
 
 # ── Rutas por defecto ────────────────────────────────────────────────────────
-const PATH_DEFAULT = joinpath(@__DIR__, "..", "experiment_files") * "/"
-const PATH_DATA    = joinpath(@__DIR__, "..", "datafiles") * "/"
+# PATH_DATA apunta a la carpeta desde la cual el usuario invoca `using DCMotor`
+# (el directorio de trabajo en el momento de cargar el paquete).
+const PATH_DATA = Ref{String}("")
 
+"""Ruta absoluta de un archivo dentro de PATH_DATA/datafiles."""
+_datafile(name::AbstractString) = joinpath(PATH_DATA[], "datafiles", name)
+
+"""
+Crea (si no existen) los directorios "datafiles" y "ejemplos" dentro de
+PATH_DATA, y los puebla con los archivos del paquete instalado. Si ya
+existen, no hace nada.
+"""
 function _ensure_dirs()
-    mkpath(PATH_DEFAULT)
-    mkpath(PATH_DATA)
+    pkg_root = joinpath(@__DIR__, "..")
+
+    datafiles_dst = joinpath(PATH_DATA[], "datafiles")
+    if !isdir(datafiles_dst)
+        mkpath(datafiles_dst)
+        datafiles_src = joinpath(pkg_root, "datafiles")
+        for f in filter(f -> endswith(f, ".csv"), readdir(datafiles_src))
+            cp(joinpath(datafiles_src, f), joinpath(datafiles_dst, f); force=true)
+        end
+    end
+
+    ejemplos_dst = joinpath(PATH_DATA[], "ejemplos")
+    if !isdir(ejemplos_dst)
+        ejemplos_src = joinpath(pkg_root, "ejemplos")
+        cp(ejemplos_src, ejemplos_dst; force=true)
+    end
+    return nothing
 end
 
 
@@ -85,7 +109,7 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """Lee archivo CSV de 2 columnas (u, y). Retorna (u, y)."""
-function read_csv_file(filepath::String = PATH_DATA * "DCmotor_static_gain_response.csv")
+function read_csv_file(filepath::String = _datafile("DCmotor_static_gain_response.csv"))
     data = readdlm(filepath, ','; header=true)[1]
     return Float64.(data[:, 1]), Float64.(data[:, 2])
 end
@@ -125,8 +149,6 @@ mutable struct MotorSystem
             port::String         = "/dev/ttyUSB0",
             bauds::Int           = 460800)
 
-        _ensure_dirs()
-        
         topics = Dict(
             "set_pid"       => "/set_pid",
             "set_ref"       => "/set_ref",
@@ -328,7 +350,7 @@ Retorna la función de transferencia nominal del motor DC.
 function transfer_function(sys::MotorSystem,
                            output::Symbol = :angle)
     
-    b, a , L = read_model(PATH_DATA * "DCmotor_fo_model.csv")
+    b, a , L = read_model(_datafile("DCmotor_fo_model.csv"))
     b, a  = b[1], a[1] 
 
     if output == :angle   # angle   
@@ -351,7 +373,7 @@ end
 Interpola la velocidad estacionaria a partir de la curva estática.
 """
 function speed_from_volts(sys::MotorSystem, volts::Real)
-    K, b, zm = read_csv_file3(PATH_DATA * "DCmotor_static_pars.csv")
+    K, b, zm = read_csv_file3(_datafile("DCmotor_static_pars.csv"))
     K, b, zm = K[1], b[1], zm[1]
     if abs(volts) <= zm
         return 0.0
@@ -370,8 +392,8 @@ end
 Interpola el voltaje necesario para una velocidad estacionaria dada.
 """
 function volts_from_speed(sys::MotorSystem, speed::Real)
-    u, y = read_csv_file(PATH_DATA * "DCmotor_static_gain_response.csv")
-    K, b, zm = read_model(PATH_DATA * "DCmotor_static_pars.csv")
+    u, y = read_csv_file(_datafile("DCmotor_static_gain_response.csv"))
+    K, b, zm = read_model(_datafile("DCmotor_static_pars.csv"))
     K, b, zm = K[1], b[1], zm[1]
     
     if abs(speed) <= 2 
@@ -387,15 +409,13 @@ end
 
 # ── Guardar experimentos ─────────────────────────────────────────────────────
 
-"""Guarda las columnas como CSV en PATH_DATA y PATH_DEFAULT."""
+"""Guarda las columnas como CSV en PATH_DATA/datafiles."""
 function save_experiment(columns::Vector, filename::String, header::String)
     mat = hcat(columns...)
-    for path in (PATH_DATA, PATH_DEFAULT)
-        open(path * filename, "w") do io
-            println(io, header)
-            for i in axes(mat, 1)
-                println(io, join([@sprintf("%.8f", mat[i, j]) for j in axes(mat, 2)], ","))
-            end
+    open(_datafile(filename), "w") do io
+        println(io, header)
+        for i in axes(mat, 1)
+            println(io, join([@sprintf("%.8f", mat[i, j]) for j in axes(mat, 2)], ","))
         end
     end
     return nothing

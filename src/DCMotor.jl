@@ -1,7 +1,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 #  DCMotor.jl – Módulo principal para control e identificación de motor DC.
 #
-#  LB 2026 – MIT License
+#  LB y HD 2026 – MIT License
 # ═══════════════════════════════════════════════════════════════════════════════
 
 module DCMotor
@@ -31,6 +31,14 @@ include("motorsys.jl")
 include("controlsys.jl")
 include("identsys.jl")
 include("graphics.jl")
+
+# ── Inicialización ───────────────────────────────────────────────────────────
+# Se ejecuta cada vez que se hace `using DCMotor`: fija PATH_DATA al directorio
+# de trabajo actual y crea/puebla datafiles/ y ejemplos/ si aún no existen allí.
+function __init__()
+    PATH_DATA[] = pwd()
+    _ensure_dirs()
+end
 
 # ── API pública ──────────────────────────────────────────────────────────────
 

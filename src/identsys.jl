@@ -353,13 +353,13 @@ function get_static_model(sys::MotorSystem; points::Int = 20)
 
 
     exp_data = hcat(uee1, yee1)
-    open(PATH_DATA * "DCmotor_static_gain_response.csv", "w") do io
+    open(_datafile("DCmotor_static_gain_response.csv"), "w") do io
             println(io, "u,y")
             for i in axes(exp_data, 1)
                 @printf(io, "%.8f,%.8f\n", exp_data[i, 1], exp_data[i, 2])
             end
         end
-    open(PATH_DATA * "DCmotor_static_pars.csv", "w") do io
+    open(_datafile("DCmotor_static_pars.csv"), "w") do io
             println(io, "K, b ,zm")
             @printf(io, "%.8f,%.8f,%.8f\n", K, b, zm)
     end
@@ -408,7 +408,7 @@ function get_fomodel_step(sys::MotorSystem;
     if !usefile
         t, u, y = step_open(sys; u0=ua, u1=ub, t0=timestep, t1=timestep)
     else
-        t, u, y = read_csv_file3(PATH_DATA * "DCmotor_step_open_exp.csv")
+        t, u, y = read_csv_file3(_datafile("DCmotor_step_open_exp.csv"))
     end
 
     # Detectar el escalón
@@ -483,7 +483,7 @@ function get_fomodel_step(sys::MotorSystem;
     a = 1 / tau
     G = b /(s+a) 
 
-    open(PATH_DATA * "DCmotor_fo_model.csv", "w") do io
+    open(_datafile("DCmotor_fo_model.csv"), "w") do io
             println(io, "b,a,L")
             @printf(io, "%.8f,%.8f,%.3f\n", b, a, L_val)
     end    
@@ -525,7 +525,7 @@ function get_model_prbs(sys::MotorSystem;
         prbs_open(sys; low_val=ua, high_val=ub, divider=4)
     end
 
-    t, u, y = read_csv_file3(PATH_DATA * "DCmotor_prbs_open_exp.csv")
+    t, u, y = read_csv_file3(_datafile("DCmotor_prbs_open_exp.csv"))
     ymean_val = Float64(mean(y))
     
     # removing means
@@ -577,7 +577,7 @@ function get_model_prbs(sys::MotorSystem;
    
 
   
-    open(PATH_DATA * "DCmotor_fo_model.csv", "w") do io
+    open(_datafile("DCmotor_fo_model.csv"), "w") do io
             println(io, "b,a,L")
             @printf(io, "%.8f,%.8f,%.3f\n", b, a, SAMPLING_TIME)
     end
