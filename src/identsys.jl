@@ -17,11 +17,37 @@ using LaTeXStrings
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    step_open(sys; u0=1.5, u1=3.5, t0=1.0, t1=1.0)
+    step_open(sys::MotorSystem; u0=1.5, u1=3.5, t0=1.0, t1=1.0)
 
-Respuesta al escalón en lazo abierto del motor DC (velocidad).
-`u0` = voltaje bajo, `u1` = voltaje alto, `t0` y `t1` = duración en segundos.
-Grafica en tiempo real y retorna (t, u, y).
+Ejecuta un experimento de respuesta al escalón en lazo abierto: el voltaje
+aplicado al motor permanece en `u0` durante `t0` segundos y luego salta a
+`u1` durante `t1` segundos (sin ningún controlador activo). Se usa
+típicamente para identificar el modelo dinámico de la velocidad angular. Los
+datos se grafican en tiempo real y, al finalizar, se guardan en
+`datafiles/DCmotor_step_open_exp.csv` y la referencia se vuelve a fijar en
+`0`.
+
+# Argumentos
+- `sys::MotorSystem`: objeto de la plataforma.
+
+# Argumentos de palabra clave
+- `u0::Real=1.5`: voltaje inicial (bajo), en voltios.
+- `u1::Real=3.5`: voltaje final (alto), en voltios, tras el escalón.
+- `t0::Real=1.0`: duración en segundos con el voltaje en `u0`.
+- `t1::Real=1.0`: duración en segundos con el voltaje en `u1`.
+
+# Retorna
+- `(t, u, y)`: tupla de vectores `Vector{Float64}` con el tiempo (s), el
+  voltaje aplicado (V) y la velocidad angular medida (°/s).
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor
+
+julia> sys = MotorSystem();
+
+julia> t, u, y = step_open(sys; u0=1.0, u1=4.0, t0=1.0, t1=2.0);
+```
 """
 function step_open(sys::MotorSystem;
                    u0::Real = 1.5, u1::Real = 3.5,
@@ -101,10 +127,39 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    prbs_open(sys; low_val=2.0, high_val=4.0, divider=2)
+    prbs_open(sys::MotorSystem; low_val=2.0, high_val=4.0, divider=2)
 
-Identificación en lazo abierto con señal PRBS.
-Grafica en tiempo real y retorna (t, u, y).
+Ejecuta un experimento de identificación en lazo abierto excitando el motor
+con una señal binaria pseudoaleatoria (PRBS) que alterna entre `low_val` y
+`high_val` voltios. La secuencia tiene una longitud fija `PRBS_LENGTH`
+(1023 bits, definida por el firmware), y cada bit se mantiene durante
+`divider` periodos de muestreo (`SAMPLING_TIME`). Los datos se grafican en
+tiempo real (con una ventana deslizante) y, al finalizar, se guardan en
+`datafiles/DCmotor_prbs_open_exp.csv` y la referencia se vuelve a fijar en
+`0`.
+
+# Argumentos
+- `sys::MotorSystem`: objeto de la plataforma.
+
+# Argumentos de palabra clave
+- `low_val::Real=2.0`: nivel bajo de la señal PRBS, en voltios.
+- `high_val::Real=4.0`: nivel alto de la señal PRBS, en voltios.
+- `divider::Int=2`: número de periodos de muestreo durante los cuales se
+  mantiene cada bit de la secuencia PRBS (a mayor `divider`, señal más
+  "lenta" y de mayor duración total).
+
+# Retorna
+- `(t, u, y)`: tupla de vectores `Vector{Float64}` con el tiempo (s), el
+  voltaje aplicado (V) y la velocidad angular medida (°/s).
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor
+
+julia> sys = MotorSystem();
+
+julia> t, u, y = prbs_open(sys; low_val=1.5, high_val=4.5, divider=3);
+```
 """
 function prbs_open(sys::MotorSystem;
                    low_val::Real = 2.0, high_val::Real = 4.0,
@@ -278,10 +333,40 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    get_static_model(sys; points=30)
+    get_static_model(sys::MotorSystem; points=20)
 
-Obtiene la curva estática velocidad vs voltaje del motor DC.
-Retorna (uee, yee) — vectores de voltaje y velocidad estacionaria.
+Obtiene experimentalmente la curva estática (voltaje vs. velocidad angular
+estacionaria) del motor DC. Aplica sucesivamente `points` niveles de voltaje
+(5 puntos finos dentro de la zona muerta, entre 0.15 y 0.25 V, y el resto
+espaciados uniformemente entre 0.3 y 5 V), midiendo en cada uno la velocidad
+estacionaria como el promedio de las últimas muestras de un escalón de 3
+segundos ([`step_open`](@ref) simplificado). Ajusta por mínimos cuadrados un
+modelo lineal `y = K*u + b` sobre los puntos fuera de la zona muerta, y
+estima el voltaje de zona muerta `zm`. Muestra una gráfica con los datos, la
+recta ajustada y la zona muerta, y guarda los resultados en
+`datafiles/DCmotor_static_gain_response.csv` y
+`datafiles/DCmotor_static_pars.csv` (usados luego por
+[`speed_from_volts`](@ref) y [`volts_from_speed`](@ref)). Al finalizar, fija
+la referencia en `0`.
+
+# Argumentos
+- `sys::MotorSystem`: objeto de la plataforma.
+
+# Argumentos de palabra clave
+- `points::Int=20`: número total de niveles de voltaje a barrer.
+
+# Retorna
+- `(uee, yee)`: tupla de vectores `Vector{Float64}` con los voltajes
+  aplicados (V) y las velocidades estacionarias medidas (°/s) en cada uno.
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor
+
+julia> sys = MotorSystem();
+
+julia> uee, yee = get_static_model(sys; points=25);
+```
 """
 function get_static_model(sys::MotorSystem; points::Int = 20)
     timestep = 3.0
@@ -377,10 +462,51 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    get_fomodel_step(sys; yop=400, usefile=false)
+    get_fomodel_step(sys::MotorSystem; yop=400, sigma=100, usefile=false)
 
-Estima un modelo FOTD (First Order plus Time Delay) a partir de un escalón.
-Retorna (alpha, tau, L) — ganancia, constante de tiempo, retardo.
+Estima un modelo de primer orden con retardo (FOTD, *First Order plus Time
+Delay*) de la velocidad angular del motor DC, linealizado alrededor de un
+punto de operación `yop` (en °/s). Calcula los voltajes de excitación `ua` y
+`ub` (mediante [`volts_from_speed`](@ref)) de modo que el escalón cubra
+aproximadamente el rango `[yop - sigma, yop + sigma]`, ejecuta (o reutiliza,
+si `usefile=true`) un experimento de [`step_open`](@ref), detecta el
+instante del escalón y ajusta por mínimos cuadrados el retardo `L` y la
+constante de tiempo `τ` a partir de los tiempos de cruce de la respuesta
+normalizada en los niveles 10 %, 15 %, 20 %, 30 % y 50 %. La ganancia
+estática `α = Δy/Δu` se calcula directamente de los valores estacionarios
+antes y después del escalón. Se muestra una gráfica comparando los datos
+experimentales con el modelo simulado, y se guardan los parámetros en
+`datafiles/DCmotor_fo_model.csv`.
+
+El modelo retornado tiene la forma `G(s) = b/(s+a)`, equivalente a
+`α/(τs+1)` con `b = α/τ` y `a = 1/τ` (el retardo `L` se estima y se guarda en
+el archivo de parámetros, pero no se incluye como retardo puro en la función
+de transferencia retornada).
+
+# Argumentos
+- `sys::MotorSystem`: objeto de la plataforma.
+
+# Argumentos de palabra clave
+- `yop::Real=400`: punto de operación (velocidad, en °/s) alrededor del cual
+  se linealiza el modelo.
+- `sigma::Real=100`: semiancho (en °/s) de la banda de excitación alrededor
+  de `yop`.
+- `usefile::Bool=false`: si es `true`, reutiliza el último experimento
+  guardado en `datafiles/DCmotor_step_open_exp.csv` en lugar de ejecutar uno
+  nuevo.
+
+# Retorna
+- `G::ControlSystems.TransferFunction`: modelo continuo de primer orden
+  `b/(s+a)` de la velocidad angular.
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor
+
+julia> sys = MotorSystem();
+
+julia> G = get_fomodel_step(sys; yop=300, sigma=80);
+```
 """
 function get_fomodel_step(sys::MotorSystem;
                           yop::Real = 400, sigma::Real = 100, usefile::Bool = false)
@@ -495,10 +621,45 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    get_models_prbs(sys; yop=400, usefile=false)
+    get_model_prbs(sys::MotorSystem; yop=400, sigma=100, usefile=false)
 
-Estima un modelo de primer orden usando datos de PRBS.
-Retorna la función de transferencia G₁(s).
+Estima un modelo de primer orden de la velocidad angular del motor DC a
+partir de un experimento de identificación con señal PRBS, linealizado
+alrededor de un punto de operación `yop` (en °/s). Calcula los voltajes
+`low_val`/`high_val` de la misma forma que [`get_fomodel_step`](@ref),
+ejecuta (o reutiliza, si `usefile=true`) un experimento con
+[`prbs_open`](@ref) (`divider=4`), remueve las medias de entrada y salida, y
+ajusta un modelo ARX discreto de orden (1,1) con retardo de entrada de una
+muestra, usando el estimador de variables instrumentales de
+`ControlSystemIdentification.jl`. El modelo discreto se convierte a tiempo
+continuo. Se muestra una gráfica comparando la salida medida con la
+simulada por el modelo (indicando el porcentaje de ajuste, *FIT*), y se
+guardan los parámetros en `datafiles/DCmotor_fo_model.csv`.
+
+# Argumentos
+- `sys::MotorSystem`: objeto de la plataforma.
+
+# Argumentos de palabra clave
+- `yop::Real=400`: punto de operación (velocidad, en °/s) alrededor del cual
+  se linealiza el modelo.
+- `sigma::Real=100`: semiancho (en °/s) de la banda de excitación alrededor
+  de `yop`.
+- `usefile::Bool=false`: si es `true`, reutiliza el último experimento
+  guardado en `datafiles/DCmotor_prbs_open_exp.csv` en lugar de ejecutar uno
+  nuevo.
+
+# Retorna
+- `G1::ControlSystems.TransferFunction`: modelo continuo de primer orden de
+  la velocidad angular, identificado a partir de los datos PRBS.
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor
+
+julia> sys = MotorSystem();
+
+julia> G1 = get_model_prbs(sys; yop=350, sigma=60);
+```
 """
 function get_model_prbs(sys::MotorSystem;
                          yop::Real = 400, sigma::Real = 100, usefile::Bool = false)

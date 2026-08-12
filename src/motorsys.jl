@@ -131,12 +131,54 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-   MotorSystem(;  port, bauds)
+    MotorSystem(; port="/dev/ttyUSB0", bauds=460800)
 
-Interfaz serial con el sistema UNDCMotor (ESP32).
+Objeto que representa la interfaz serial entre Julia y la plataforma
+UNDCMotor (placa ESP32). Todas las funciones de comunicación, control e
+identificación del paquete reciben una instancia de `MotorSystem` como primer
+argumento.
 
+El constructor solo crea la estructura; no abre el puerto serial. Use
+[`connect!`](@ref) para abrir la conexión y [`disconnect!`](@ref) para
+cerrarla (la mayoría de las funciones de alto nivel, como [`set_reference`](@ref)
+o [`step_closed`](@ref), ya se conectan y desconectan automáticamente).
+
+# Argumentos de palabra clave
+- `port::String="/dev/ttyUSB0"`: nombre del puerto serial al que está
+  conectada la placa ESP32 (por ejemplo `"/dev/ttyUSB0"` en Linux, `"COM3"`
+  en Windows).
+- `bauds::Int=460800`: velocidad de transmisión (baudios) del puerto serial;
+  debe coincidir con la configurada en el firmware.
+
+# Campos
+- `port::String`: puerto serial configurado.
+- `bauds::Int`: velocidad de transmisión.
+- `sp::Union{SerialPort,Nothing}`: objeto de bajo nivel del puerto serial
+  abierto (`nothing` si no está conectado).
+- `topics::Dict{String,String}`: mapa entre comandos internos (p. ej.
+  `"set_pid"`) y los tópicos del protocolo serial del firmware (p. ej.
+  `"/set_pid"`).
+- `queue::Channel{Dict{String,Any}}`: cola interna donde el hilo lector
+  deposita las tramas JSON recibidas del firmware.
+- `reader_task::Union{Task,Nothing}`: tarea asíncrona que lee continuamente
+  el puerto serial.
+- `stop_reader::Threads.Atomic{Bool}`: bandera atómica usada para detener la
+  tarea lectora.
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor
+
+julia> sys = MotorSystem(port="/dev/ttyUSB0", bauds=460800);
+
+julia> connect!(sys)
+
+julia> set_reference(sys, 90.0)
+
+julia> disconnect!(sys)
+```
 """
-mutable struct MotorSystem   
+mutable struct MotorSystem
     port         :: String
     bauds        :: Int
     sp           :: Union{SerialPort, Nothing}
@@ -342,10 +384,38 @@ end
 # ── Modelos de la planta ─────────────────────────────────────────────────────
 
 """
-    transfer_function(sys; output=:angle, min_order=true)
+    transfer_function(sys::MotorSystem, output::Symbol=:angle)
 
-Retorna la función de transferencia nominal del motor DC.
-`output` puede ser `:position` o `:speed`.
+Retorna la función de transferencia nominal del motor DC, estimada
+previamente con [`get_fomodel_step`](@ref) o [`get_model_prbs`](@ref) y
+almacenada en `datafiles/DCmotor_fo_model.csv`.
+
+El modelo identificado es de primer orden, `b/(s+a)`, con ganancia `b` y polo
+en `-a`. Según el valor de `output`, la función retorna:
+- `:angle` → `b / (s*(s+a))` (se agrega un integrador: de velocidad a
+  posición angular).
+- `:speed` → `b / (s+a)` (modelo directo de la velocidad angular).
+
+# Argumentos
+- `sys::MotorSystem`: objeto de la plataforma (no necesita estar conectado;
+  solo se usa para ubicar el archivo del modelo).
+- `output::Symbol=:angle`: variable de salida del modelo, `:angle` (ángulo,
+  en grados) o `:speed` (velocidad angular, en grados/s).
+
+# Retorna
+- `G::ControlSystems.TransferFunction`: función de transferencia continua
+  del motor DC para la salida solicitada.
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor, ControlSystems
+
+julia> sys = MotorSystem();
+
+julia> G_speed = transfer_function(sys, :speed)
+
+julia> G_angle = transfer_function(sys, :angle)   # incluye el integrador
+```
 """
 function transfer_function(sys::MotorSystem,
                            output::Symbol = :angle)
@@ -368,9 +438,36 @@ function transfer_function(sys::MotorSystem,
 end
 
 """
-    speed_from_volts(sys, volts)
+    speed_from_volts(sys::MotorSystem, volts::Real)
 
-Interpola la velocidad estacionaria a partir de la curva estática.
+Calcula la velocidad angular estacionaria (en °/s) que alcanza el motor DC
+al aplicarle un voltaje constante `volts`, usando el modelo estático lineal
+`y = K*u + sign(u)*b` ajustado por [`get_static_model`](@ref) y almacenado en
+`datafiles/DCmotor_static_pars.csv`.
+
+Si `|volts|` está dentro de la zona muerta del motor (`|volts| <= zm`), la
+velocidad estacionaria retornada es `0.0`.
+
+# Argumentos
+- `sys::MotorSystem`: objeto de la plataforma (usado solo para ubicar el
+  archivo del modelo estático).
+- `volts::Real`: voltaje aplicado, en voltios. Debe cumplir `|volts| <= 5.0`.
+
+# Retorna
+- `Float64`: velocidad angular estacionaria estimada, en grados/segundo.
+
+# Lanza
+- `ErrorException` si `|volts| > 5.0`.
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor
+
+julia> sys = MotorSystem();
+
+julia> speed_from_volts(sys, 3.0)
+412.35
+```
 """
 function speed_from_volts(sys::MotorSystem, volts::Real)
     K, b, zm = read_csv_file3(_datafile("DCmotor_static_pars.csv"))
@@ -387,9 +484,37 @@ function speed_from_volts(sys::MotorSystem, volts::Real)
 end
 
 """
-    volts_from_speed(sys, speed)
+    volts_from_speed(sys::MotorSystem, speed::Real)
 
-Interpola el voltaje necesario para una velocidad estacionaria dada.
+Calcula el voltaje constante necesario para que el motor DC alcance, en
+estado estacionario, la velocidad angular `speed` (en °/s). Es la función
+inversa de [`speed_from_volts`](@ref) y usa el mismo modelo estático lineal
+almacenado en `datafiles/DCmotor_static_pars.csv` y
+`datafiles/DCmotor_static_gain_response.csv`.
+
+# Argumentos
+- `sys::MotorSystem`: objeto de la plataforma (usado solo para ubicar los
+  archivos del modelo estático).
+- `speed::Real`: velocidad angular deseada, en grados/segundo. Debe estar
+  entre `0` y la velocidad máxima medida experimentalmente (típicamente
+  cercana a `800` °/s a 5V).
+
+# Retorna
+- `Float64`: voltaje, en voltios, necesario para alcanzar `speed` en estado
+  estacionario.
+
+# Lanza
+- `ErrorException` si `|speed|` excede el rango medido experimentalmente.
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor
+
+julia> sys = MotorSystem();
+
+julia> volts_from_speed(sys, 400.0)
+2.87
+```
 """
 function volts_from_speed(sys::MotorSystem, speed::Real)
     u, y = read_csv_file(_datafile("DCmotor_static_gain_response.csv"))

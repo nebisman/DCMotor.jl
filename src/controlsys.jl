@@ -20,9 +20,31 @@ using LaTeXStrings
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    set_reference(sys, ref_value=50.0)
+    set_reference(sys::MotorSystem, ref_value::Real=50.0)
 
-Fija la referencia del sistema a `ref_value`.
+Fija la referencia  del lazo de control activo en el firmware del
+ESP32 al valor `ref_value`.
+
+# Argumentos
+- `sys::MotorSystem`: objeto de la plataforma.
+- `ref_value::Real=50.0`: valor de referencia a fijar. Sus unidades dependen
+  del tipo de control activo en el ESP32 (grados si `output=:angle`,
+  grados/s si `output=:speed`; ver [`set_pid`](@ref) y [`set_controller`](@ref)).
+
+# Retorna
+- `nothing`. Como efecto secundario, imprime en consola la referencia fijada.
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor
+
+julia> sys = MotorSystem();
+
+julia> set_pid(sys; kp=2.0, ki=0.5, output=:angle);
+
+julia> set_reference(sys, 180.0)
+Referencia fijada a 180.00
+```
 """
 function set_reference(sys::MotorSystem, ref_value::Real = 50.0)
     connect!(sys)
@@ -38,11 +60,50 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    set_pid!(sys; kp=1.0, ki=0.4, kd=0.0, N=5.0, beta=1.0,
-             output=:angle, deadzone=0.125)
+    set_pid(sys::MotorSystem; kp=1.0, ki=0.4, kd=0.0, N=5.0, beta=1.0,
+            output=:angle, deadzone=0.125)
 
-Configura los parámetros del controlador PID en el ESP32.
-`output` puede ser `:angle` o `:speed`.
+Configura y carga en el firmware del ESP32 los parámetros de un controlador
+PID, con filtro en la acción derivativa y ponderación del punto de
+ajuste (*setpoint weighting*) en la acción proporcional. Después de cargar el
+controlador, fija la referencia en `0`.
+
+La ley de control implementada en el firmware corresponde a:
+
+``u(t) = k_p\\,(\\beta r - y) + k_i \\int (r - y)\\,dt - k_d \\dfrac{dy_f}{dt}``
+
+donde `y_f` es la salida `y` filtrada con un filtro de primer orden de
+coeficiente `N`.
+
+# Argumentos
+- `sys::MotorSystem`: objeto de la plataforma.
+
+# Argumentos de palabra clave
+- `kp::Real=1.0`: ganancia proporcional.
+- `ki::Real=0.4`: ganancia integral.
+- `kd::Real=0.0`: ganancia derivativa.
+- `N::Real=5.0`: coeficiente del filtro de la acción derivativa (a mayor
+  `N`, menos filtrado).
+- `beta::Real=1.0`: ponderación del punto de ajuste en la acción
+  proporcional (entre `0` y `1`). Con `beta=1` la acción proporcional se aplica sobre el error completo
+  `(r - y)` y se programa un PID estándar de 1 grado de libertad, mientras que con `beta=0` la acción proporcional se aplica solo sobre la salida `y` (control de retroalimentación pura).
+- `output::Symbol=:angle`: variable controlada, `:angle` (ángulo) o
+  `:speed` (velocidad).
+- `deadzone::Real=0.125`: zona muerta de la señal de control, en voltios,
+  para evitar *chattering* del motor cerca de cero.
+
+# Retorna
+- `nothing`. Imprime en consola los parámetros configurados.
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor
+
+julia> sys = MotorSystem();
+
+julia> set_pid(sys; kp=2.5, ki=0.6, kd=0.05, output=:angle, deadzone=0.15)
+PID actualizado: kp=2.5  ki=0.6  kd=0.05  N=5.0  β=1.0
+```
 """
 function set_pid(sys::MotorSystem;
                   kp::Real = 1.0, ki::Real = 0.4, kd::Real = 0.0,
@@ -73,17 +134,47 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    set_controller!(sys, controller; output=:angle, deadzone=0.2)
+    set_controller(sys::MotorSystem, controller; output=:angle, deadzone=0.2)
 
-Carga un controlador general (función de transferencia) al ESP32.
-El controlador se convierte a espacio de estados, se discretiza (bilineal/Tustin),
-y se calcula la ganancia anti-windup (observador LQR).
+Carga en el firmware del ESP32 un controlador general, de una entrada
+(1 grado de libertad) o de dos entradas (2 grados de libertad, "dos
+parámetros"), dado como función de transferencia continua de
+`ControlSystems.jl`. Internamente el controlador se convierte a espacio de
+estados, se discretiza con el método bilineal (Tustin) al periodo de
+muestreo `SAMPLING_TIME`, y se calcula una ganancia de observador (tipo
+Kalman) que el firmware usa como mecanismo anti-windup. Después de cargar el
+controlador, fija la referencia en `0`.
 
-`controller` debe ser un TransferFunction de ControlSystems.jl.
-- SISO (1 DOF): un solo TF → u = C(s)·(r − y)
-- 1×2 MIMO (2 DOF): TF con 2 entradas → u = C₁(s)·r + C₂(s)·y
+# Argumentos
+- `sys::MotorSystem`: objeto de la plataforma.
+- `controller`: función de transferencia (`ControlSystems.TransferFunction`)
+  del controlador.
+  - Si es SISO (una entrada), se interpreta como controlador de 1 grado de
+    libertad: `u = C(s)·(r − y)`.
+  - Si es 1×2 (dos entradas), se interpreta como controlador de 2 grados de
+    libertad: `u = C₁(s)·r + C₂(s)·y`, donde `C₁` es la primera columna y
+    `C₂` la segunda.
 
-`output` puede ser `:angle` o `:speed`.
+# Argumentos de palabra clave
+- `output::Symbol=:angle`: variable controlada, `:angle` o `:speed`.
+- `deadzone::Real=0.2`: zona muerta de la señal de control, en voltios.
+
+# Retorna
+- `nothing`. Imprime un mensaje de confirmación en consola.
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor, ControlSystems
+
+julia> sys = MotorSystem();
+
+julia> s = tf("s");
+
+julia> C = 2.0 * (s + 1) / s;     # controlador PI de 1 grado de libertad
+
+julia> set_controller(sys, C; output=:angle, deadzone=0.2)
+Controlador cargado en Motor
+```
 """
 function set_controller(sys::MotorSystem, controller;
      output::Symbol = :angle, deadzone::Real = 0.2)
@@ -145,11 +236,41 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    step_closed(sys; r0=0, r1=100, t0=0.0, t1=1.0)
+    step_closed(sys::MotorSystem; r0=0, r1=100, t0=0.0, t1=1.0)
 
-Ejecuta un escalón en lazo cerrado: referencia pasa de `r0` a `r1`.
-`t0` = duración en valor bajo, `t1` = duración en valor alto (segundos).
-Grafica en tiempo real y retorna (t, r, y, u).
+Ejecuta un experimento de respuesta al escalón en lazo cerrado: la
+referencia permanece en `r0` durante `t0` segundos y luego salta a `r1`
+durante `t1` segundos, mientras el controlador previamente cargado (con
+[`set_pid`](@ref) o [`set_controller`](@ref)) actúa sobre la planta. Los
+datos se grafican en tiempo real a medida que llegan del ESP32 y, al
+finalizar, se guardan en `datafiles/DCmotor_step_closed_exp.csv` y la
+referencia se vuelve a fijar en `0`.
+
+# Argumentos
+- `sys::MotorSystem`: objeto de la plataforma, previamente configurado con
+  un controlador.
+
+# Argumentos de palabra clave
+- `r0::Real=0`: valor inicial (bajo) de la referencia.
+- `r1::Real=100`: valor final (alto) de la referencia, tras el escalón.
+- `t0::Real=0.0`: duración en segundos con la referencia en `r0`.
+- `t1::Real=1.0`: duración en segundos con la referencia en `r1`.
+
+# Retorna
+- `(t, r, y, u)`: tupla de vectores `Vector{Float64}` con el tiempo (s), la
+  referencia, la salida medida (ángulo o velocidad, según el controlador
+  cargado) y la señal de control (voltios), respectivamente.
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor
+
+julia> sys = MotorSystem();
+
+julia> set_pid(sys; kp=2.0, ki=0.5, output=:angle);
+
+julia> t, r, y, u = step_closed(sys; r0=0, r1=180, t0=0.5, t1=2.0);
+```
 """
 function step_closed(sys::MotorSystem;
                      r0::Real = 0, r1::Real = 100,
@@ -236,10 +357,39 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    stairs_closed(sys; stairs=(90, 180, 270), duration=1.5)
+    stairs_closed(sys::MotorSystem; stairs=(90, 180, 270), duration=1.5)
 
-Ejecuta una señal tipo escaleras en lazo cerrado.
-Grafica en tiempo real y retorna (t, r, y, u).
+Ejecuta en lazo cerrado una señal de referencia tipo "escalera": la
+referencia toma sucesivamente cada uno de los valores de `stairs`,
+permaneciendo `duration` segundos en cada nivel, mientras el controlador
+previamente cargado (con [`set_pid`](@ref) o [`set_controller`](@ref)) actúa
+sobre la planta. Los datos se grafican en tiempo real y, al finalizar, se
+guardan en `datafiles/DCmotor_stairs_closed_exp.csv` y la referencia se
+vuelve a fijar en `0`.
+
+# Argumentos
+- `sys::MotorSystem`: objeto de la plataforma, previamente configurado con
+  un controlador.
+
+# Argumentos de palabra clave
+- `stairs`: colección (`Tuple` o `Vector`) con los niveles sucesivos de
+  referencia.
+- `duration::Real=1.5`: duración en segundos de cada escalón de la escalera.
+
+# Retorna
+- `(t, r, y, u)`: tupla de vectores `Vector{Float64}` con el tiempo (s), la
+  referencia, la salida medida y la señal de control (voltios).
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor
+
+julia> sys = MotorSystem();
+
+julia> set_pid(sys; kp=2.0, ki=0.5, output=:angle);
+
+julia> t, r, y, u = stairs_closed(sys; stairs=(90, 180, 270, 90), duration=2.0);
+```
 """
 function stairs_closed(sys::MotorSystem;
                        stairs = (90, 180, 270),
@@ -317,10 +467,40 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    profile_closed(sys; timevalues=(0,1,2,3), refvalues=(0,360,360,0))
+    profile_closed(sys::MotorSystem; timevalues=(0,1,2,3), refvalues=(0,360,360,0))
 
-Ejecuta un perfil de referencia interpolado en lazo cerrado.
-Grafica en tiempo real y retorna (t, r, y, u).
+Ejecuta en lazo cerrado un perfil de referencia arbitrario, definido por
+pares `(timevalues[i], refvalues[i])` que el firmware interpola linealmente
+entre los puntos indicados, mientras el controlador previamente cargado (con
+[`set_pid`](@ref) o [`set_controller`](@ref)) actúa sobre la planta. Los
+datos se grafican en tiempo real y, al finalizar, se guardan en
+`datafiles/DCmotor_profile_closed_exp.csv` y la referencia se vuelve a fijar
+en `0`.
+
+# Argumentos
+- `sys::MotorSystem`: objeto de la plataforma, previamente configurado con
+  un controlador.
+
+# Argumentos de palabra clave
+- `timevalues`: colección con los instantes de tiempo (en segundos,
+  crecientes, idealmente comenzando en `0`) que definen el perfil.
+- `refvalues`: colección, del mismo largo que `timevalues`, con los valores
+  de referencia en cada instante.
+
+# Retorna
+- `(t, r, y, u)`: tupla de vectores `Vector{Float64}` con el tiempo (s), la
+  referencia interpolada, la salida medida y la señal de control (voltios).
+
+# Ejemplos
+```julia-repl
+julia> using DCMotor
+
+julia> sys = MotorSystem();
+
+julia> set_pid(sys; kp=2.0, ki=0.5, output=:angle);
+
+julia> t, r, y, u = profile_closed(sys; timevalues=(0, 1, 2, 3), refvalues=(0, 360, 360, 0));
+```
 """
 function profile_closed(sys::MotorSystem;
                         timevalues = (0, 1, 2, 3),
