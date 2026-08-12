@@ -2,9 +2,7 @@
 
 [![Build Status](https://github.com/nebisman/DCMotor.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/nebisman/DCMotor.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
-Este paquete de Julia permite el control e identificación de la plataforma portátil de experimentación **DCMotor**.
-
-Esta plataforma es para el control de un servomotor DC por medio de un ESP32.
+Este paquete de Julia permite el control e identificación con la plataforma portátil de experimentación **DCMotor**. Esta plataforma es para el control de un servomotor DC por medio de un microcontrolador ESP32.
 
 Desde una perspectiva de control y sistemas dinámicos, el motor DC permite representar vívidamente varios conceptos, a saber:
 
@@ -16,14 +14,7 @@ Adicionalmente, las constantes de tiempo están muy sintonizadas con la percepci
 
 ## Componentes de la plataforma
 
-<table>
-<tr>
-<td width="45%">
-
-<img src="docs/assets/motor.png" alt="Plataforma DCMotor" width="100%">
-
-</td>
-<td width="55%" valign="top">
+<img src="docs/assets/motor.png" alt="Plataforma DCMotor" width="800">
 
 | # | Componente |
 |---|---|
@@ -36,7 +27,3 @@ Adicionalmente, las constantes de tiempo están muy sintonizadas con la percepci
 | 7 | Soporte plástico del servomotor |
 | 8 | Rueda que muestra el ángulo y la velocidad del servomotor |
 | 9 | ESP32-S3 con factor de forma Arduino (abajo) |
-
-</td>
-</tr>
-</table>
