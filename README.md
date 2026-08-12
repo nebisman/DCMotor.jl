@@ -28,3 +28,23 @@ La siguiente imagen muestra la plataforma **DCMotor** junto con su componentes d
 | 7 | Soporte plástico del servomotor |
 | 8 | Rueda que muestra el ángulo y la velocidad del servomotor |
 | 9 | ESP32-S3 con factor de forma Arduino (abajo) |
+
+## Instalación
+
+Este paquete requiere Julia 1.12 o superior. Se instala directamente desde este repositorio:
+
+```julia
+using Pkg
+Pkg.add(url="https://github.com/nebisman/DCMotor.jl")
+```
+
+Luego, para empezar a usarlo:
+
+```julia
+using DCMotor
+```
+
+Al cargar el paquete por primera vez en un directorio de trabajo elegido por el usuario, este crea automáticamente allí las siguientes carpetas:
+
+- `datafiles/`: archivos CSV con los datos generados por los experimentos (identificación, respuesta al escalón, PRBS, etc.), usados como entrada y salida por las funciones del paquete.
+- `ejemplos/`: scripts, notebooks Pluto y notebooks Jupyter con ejemplos de identificación y control (PI, PID, diseño de dos parámetros, variables de estado, entre otros).
