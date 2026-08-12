@@ -2,18 +2,19 @@
 
 [![Build Status](https://github.com/nebisman/DCMotor.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/nebisman/DCMotor.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
-Este paquete de Julia permite el control e identificación con la plataforma portátil de experimentación **DCMotor**. Esta plataforma es para el control de un servomotor DC por medio de un microcontrolador ESP32.
+Este paquete de Julia permite hacer experimentos de control e identificación con la plataforma portátil de experimentación **DCMotor**. Esta plataforma integra los componentes para controlar un servomotor DC por medio de un microcontrolador ESP32.
 
-Desde una perspectiva de control y sistemas dinámicos, el motor DC permite representar vívidamente varios conceptos, a saber:
+Desde una perspectiva de control y sistemas dinámicos, un motor DC permite representar vívidamente varios conceptos, a saber:
 
-- Representa la respuesta de sistemas de primer orden (o segundo, si se considera el polo eléctrico) estable cuando se controla la velocidad.
-- Representa la respuesta de sistema de segundo orden (o tercero, si se considera el polo eléctrico) inestable con un integrador cuando se controla la posición.
-- El motor DC es un ejemplo fundamental de sistema multidominio, pues incluye elementos del dominio eléctrico y mecánico.
+- Representa la respuesta de sistemas de primer orden estable cuando se controla la velocidad angular.
+- Representa la respuesta de sistema de segundo orden  inestable con un integrador cuando se controla él ángulo.
+- El motor DC es un ejemplo clásico de sistema multidominio, pues incluye elementos del dominio eléctrico y mecánico.
 
 Adicionalmente, las constantes de tiempo están muy sintonizadas con la percepción humana. Esto convierte al motor DC en un sistema muy ilustrativo y pedagógico.
 
 ## Componentes de la plataforma
 
+La siguiente imagen muestra la plataforma **DCMotor** junto con su componentes descritos en la tabla.
 <img src="docs/assets/motor.png" alt="Plataforma DCMotor" width="600">
 
 | # | Componente |
