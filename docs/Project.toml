@@ -1,0 +1,6 @@
+[deps]
+DCMotor = "922c4102-36b8-43cd-8715-15eb17fb0f46"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+
+[compat]
+Documenter = "1"

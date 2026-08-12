@@ -11,9 +11,17 @@ using Printf
 using Statistics
 
 # ── Constantes del protocolo ─────────────────────────────────────────────────
+
+"""Periodo de muestreo del firmware, en segundos."""
 const SAMPLING_TIME = 0.02
+
+"""Número de muestras por trama enviada por el firmware."""
 const BUFFER_SIZE   = 20
+
+"""Longitud (en bits) de la secuencia PRBS generada por el firmware."""
 const PRBS_LENGTH   = 1023
+
+"""Tamaño de fuente por defecto usado en las gráficas."""
 const FONT_SIZE     = 12
 
 # ── Rutas por defecto ────────────────────────────────────────────────────────

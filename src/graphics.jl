@@ -20,19 +20,7 @@ function setup_fig(nrows::Int; figsize=(900, 500))
 end
 
 
-#= _ijulia() = isdefined(Main, :IJulia) ? getfield(Main, :IJulia) : nothing
 
-
-"""Redibuja la figura para actualización en tiempo real."""
-function redraw!(plt)
-    if !isnothing(_ijulia())
-        ij = getfield(Main, :IJulia)
-        Base.invokelatest(getfield(ij, :clear_output), true)  # borra la salida anterior
-    end
-    display(plt)
-    return nothing
-end
- =#
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  pantalla.jl – Visualización en tiempo real unificada: REPL, Jupyter y Pluto.
