@@ -15,7 +15,7 @@ Adicionalmente, las constantes de tiempo están muy sintonizadas con la percepci
 ## Componentes de la plataforma
 
 La siguiente imagen muestra la plataforma **DCMotor** junto con su componentes descritos en la tabla.
-<img src="docs/assets/motor.png" alt="Plataforma DCMotor" width="600">
+<img src="docs/assets/motor.png" alt="Plataforma DCMotor" width="400">
 
 | # | Componente |
 |---|---|
@@ -29,7 +29,7 @@ La siguiente imagen muestra la plataforma **DCMotor** junto con su componentes d
 | 8 | Rueda que muestra el ángulo y la velocidad del servomotor |
 | 9 | ESP32-S3 con factor de forma Arduino (abajo) |
 
-## Instalación
+## Instalación y funciones
 
 Este paquete requiere Julia 1.12 o superior. Se instala directamente desde este repositorio:
 
