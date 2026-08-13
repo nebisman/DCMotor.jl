@@ -174,16 +174,12 @@ o [`step_closed`](@ref), ya se conectan y desconectan automáticamente).
   tarea lectora.
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor
-
-julia> sys = MotorSystem(port="/dev/ttyUSB0", bauds=460800);
-
-julia> connect!(sys)
-
-julia> set_reference(sys, 90.0)
-
-julia> disconnect!(sys)
+```julia
+using DCMotor
+sys = MotorSystem(port="/dev/ttyUSB0", bauds=460800);
+connect!(sys)
+set_reference(sys, 90.0)
+disconnect!(sys)
 ```
 """
 mutable struct MotorSystem
@@ -415,14 +411,11 @@ en `-a`. Según el valor de `output`, la función retorna:
   del motor DC para la salida solicitada.
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor, ControlSystems
-
-julia> sys = MotorSystem();
-
-julia> G_speed = transfer_function(sys, :speed)
-
-julia> G_angle = transfer_function(sys, :angle)   # incluye el integrador
+```julia
+using DCMotor, ControlSystems
+sys = MotorSystem();
+G_speed = transfer_function(sys, :speed)
+G_angle = transfer_function(sys, :angle)   # incluye el integrador
 ```
 """
 function transfer_function(sys::MotorSystem,
@@ -468,13 +461,12 @@ velocidad estacionaria retornada es `0.0`.
 - `ErrorException` si `|volts| > 5.0`.
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor
+```julia
+using DCMotor
+sys = MotorSystem();
+speed_from_volts(sys, 3.0)
 
-julia> sys = MotorSystem();
-
-julia> speed_from_volts(sys, 3.0)
-412.35
+    412.35
 ```
 """
 function speed_from_volts(sys::MotorSystem, volts::Real)
@@ -515,13 +507,12 @@ almacenado en `datafiles/DCmotor_static_pars.csv` y
 - `ErrorException` si `|speed|` excede el rango medido experimentalmente.
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor
+```julia
+using DCMotor
+sys = MotorSystem();
+volts_from_speed(sys, 400.0)
 
-julia> sys = MotorSystem();
-
-julia> volts_from_speed(sys, 400.0)
-2.87
+    2.87
 ```
 """
 function volts_from_speed(sys::MotorSystem, speed::Real)

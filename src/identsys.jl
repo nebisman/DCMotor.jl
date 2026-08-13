@@ -41,12 +41,10 @@ datos se grafican en tiempo real y, al finalizar, se guardan en
   voltaje aplicado (V) y la velocidad angular medida (°/s).
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor
-
-julia> sys = MotorSystem();
-
-julia> t, u, y = step_open(sys; u0=1.0, u1=4.0, t0=1.0, t1=2.0);
+```julia
+using DCMotor
+sys = MotorSystem();
+t, u, y = step_open(sys; u0=1.0, u1=4.0, t0=1.0, t1=2.0);
 ```
 """
 function step_open(sys::MotorSystem;
@@ -153,12 +151,10 @@ tiempo real (con una ventana deslizante) y, al finalizar, se guardan en
   voltaje aplicado (V) y la velocidad angular medida (°/s).
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor
-
-julia> sys = MotorSystem();
-
-julia> t, u, y = prbs_open(sys; low_val=1.5, high_val=4.5, divider=3);
+```julia
+using DCMotor
+sys = MotorSystem();
+t, u, y = prbs_open(sys; low_val=1.5, high_val=4.5, divider=3);
 ```
 """
 function prbs_open(sys::MotorSystem;
@@ -208,7 +204,7 @@ function prbs_open(sys::MotorSystem;
             xl = (x_lo, x_hi)
         else
             xl = (0, 5*bs*h)
-        end
+        end     
 
         plt = plot(layout=(2, 1), size=(900, 500),
             title=["PRBS  $total muestras, duración=$(@sprintf("%.2f",total*h)) s" ""],
@@ -360,12 +356,10 @@ la referencia en `0`.
   aplicados (V) y las velocidades estacionarias medidas (°/s) en cada uno.
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor
-
-julia> sys = MotorSystem();
-
-julia> uee, yee = get_static_model(sys; points=25);
+```julia
+using DCMotor
+sys = MotorSystem();
+uee, yee = get_static_model(sys; points=25);
 ```
 """
 function get_static_model(sys::MotorSystem; points::Int = 20)
@@ -479,9 +473,9 @@ experimentales con el modelo simulado, y se guardan los parámetros en
 `datafiles/DCmotor_fo_model.csv`.
 
 El modelo retornado tiene la forma `G(s) = b/(s+a)`, equivalente a
-`α/(τs+1)` con `b = α/τ` y `a = 1/τ` (el retardo `L` se estima y se guarda en
-el archivo de parámetros, pero no se incluye como retardo puro en la función
-de transferencia retornada).
+`α/(τs+1)` con `b = α/τ` y `a = 1/τ` (el retardo `L` no se incluye como
+retardo puro en la función de transferencia, pero se estima, se guarda en el
+archivo de parámetros y se retorna aparte).
 
 # Argumentos
 - `sys::MotorSystem`: objeto de la plataforma.
@@ -498,14 +492,13 @@ de transferencia retornada).
 # Retorna
 - `G::ControlSystems.TransferFunction`: modelo continuo de primer orden
   `b/(s+a)` de la velocidad angular.
+- `L::Float64`: retardo estimado, en segundos.
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor
-
-julia> sys = MotorSystem();
-
-julia> G = get_fomodel_step(sys; yop=300, sigma=80);
+```julia
+using DCMotor
+sys = MotorSystem();
+G, L = get_fomodel_step(sys; yop=300, sigma=80);
 ```
 """
 function get_fomodel_step(sys::MotorSystem;
@@ -613,7 +606,7 @@ function get_fomodel_step(sys::MotorSystem;
             println(io, "b,a,L")
             @printf(io, "%.8f,%.8f,%.3f\n", b, a, L_val)
     end    
-    return G
+    return G, L_val
 end
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -630,11 +623,13 @@ alrededor de un punto de operación `yop` (en °/s). Calcula los voltajes
 ejecuta (o reutiliza, si `usefile=true`) un experimento con
 [`prbs_open`](@ref) (`divider=4`), remueve las medias de entrada y salida, y
 ajusta un modelo ARX discreto de orden (1,1) con retardo de entrada de una
-muestra, usando el estimador de variables instrumentales de
-`ControlSystemIdentification.jl`. El modelo discreto se convierte a tiempo
-continuo. Se muestra una gráfica comparando la salida medida con la
-simulada por el modelo (indicando el porcentaje de ajuste, *FIT*), y se
-guardan los parámetros en `datafiles/DCmotor_fo_model.csv`.
+muestra, previo filtrado paso banda de los datos (`prefilter`, entre 0 y
+12.5 rad/s, para eliminar la tendencia constante), usando el estimador de
+variables instrumentales de `ControlSystemIdentification.jl`. El modelo
+discreto se convierte a tiempo continuo. Se muestra una gráfica comparando
+la salida medida con la simulada por el modelo (indicando el porcentaje de
+ajuste, *FIT*), y se guardan los parámetros en
+`datafiles/DCmotor_fo_model.csv`.
 
 # Argumentos
 - `sys::MotorSystem`: objeto de la plataforma.
@@ -651,14 +646,13 @@ guardan los parámetros en `datafiles/DCmotor_fo_model.csv`.
 # Retorna
 - `G1::ControlSystems.TransferFunction`: modelo continuo de primer orden de
   la velocidad angular, identificado a partir de los datos PRBS.
+- `L::Float64`: retardo, fijado en un periodo de muestreo.
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor
-
-julia> sys = MotorSystem();
-
-julia> G1 = get_model_prbs(sys; yop=350, sigma=60);
+```julia
+using DCMotor
+sys = MotorSystem();
+G1, L = get_model_prbs(sys; yop=350, sigma=60);
 ```
 """
 function get_model_prbs(sys::MotorSystem;
@@ -737,13 +731,13 @@ function get_model_prbs(sys::MotorSystem;
     redraw!(plt)
    
 
-  
+    L = SAMPLING_TIME  # Retardo de una muestra
     open(_datafile("DCmotor_fo_model.csv"), "w") do io
             println(io, "b,a,L")
             @printf(io, "%.8f,%.8f,%.3f\n", b, a, SAMPLING_TIME)
     end
 
-    return G1
+    return G1, L
 end
 
 

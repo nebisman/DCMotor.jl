@@ -35,15 +35,13 @@ ESP32 al valor `ref_value`.
 - `nothing`. Como efecto secundario, imprime en consola la referencia fijada.
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor
+```julia
+using DCMotor
+sys = MotorSystem();
+set_pid(sys; kp=2.0, ki=0.5, output=:angle);
+set_reference(sys, 180.0)
 
-julia> sys = MotorSystem();
-
-julia> set_pid(sys; kp=2.0, ki=0.5, output=:angle);
-
-julia> set_reference(sys, 180.0)
-Referencia fijada a 180.00
+    Referencia fijada a 180.00
 ```
 """
 function set_reference(sys::MotorSystem, ref_value::Real = 50.0)
@@ -96,13 +94,12 @@ coeficiente `N`.
 - `nothing`. Imprime en consola los parámetros configurados.
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor
+```julia
+using DCMotor
+sys = MotorSystem();
+set_pid(sys; kp=2.5, ki=0.6, kd=0.05, output=:angle, deadzone=0.15)
 
-julia> sys = MotorSystem();
-
-julia> set_pid(sys; kp=2.5, ki=0.6, kd=0.05, output=:angle, deadzone=0.15)
-PID actualizado: kp=2.5  ki=0.6  kd=0.05  N=5.0  β=1.0
+    PID actualizado: kp=2.5  ki=0.6  kd=0.05  N=5.0  β=1.0
 ```
 """
 function set_pid(sys::MotorSystem;
@@ -163,17 +160,14 @@ controlador, fija la referencia en `0`.
 - `nothing`. Imprime un mensaje de confirmación en consola.
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor, ControlSystems
+```julia
+using DCMotor, ControlSystems
+sys = MotorSystem();
+s = tf("s");
+C = 2.0 * (s + 1) / s;     # controlador PI de 1 grado de libertad
+set_controller(sys, C; output=:angle, deadzone=0.2)
 
-julia> sys = MotorSystem();
-
-julia> s = tf("s");
-
-julia> C = 2.0 * (s + 1) / s;     # controlador PI de 1 grado de libertad
-
-julia> set_controller(sys, C; output=:angle, deadzone=0.2)
-Controlador cargado en Motor
+    Controlador cargado en Motor
 ```
 """
 function set_controller(sys::MotorSystem, controller;
@@ -262,14 +256,11 @@ referencia se vuelve a fijar en `0`.
   cargado) y la señal de control (voltios), respectivamente.
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor
-
-julia> sys = MotorSystem();
-
-julia> set_pid(sys; kp=2.0, ki=0.5, output=:angle);
-
-julia> t, r, y, u = step_closed(sys; r0=0, r1=180, t0=0.5, t1=2.0);
+```julia
+using DCMotor
+sys = MotorSystem();
+set_pid(sys; kp=2.0, ki=0.5, output=:angle);
+t, r, y, u = step_closed(sys; r0=0, r1=180, t0=0.5, t1=2.0);
 ```
 """
 function step_closed(sys::MotorSystem;
@@ -381,14 +372,11 @@ vuelve a fijar en `0`.
   referencia, la salida medida y la señal de control (voltios).
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor
-
-julia> sys = MotorSystem();
-
-julia> set_pid(sys; kp=2.0, ki=0.5, output=:angle);
-
-julia> t, r, y, u = stairs_closed(sys; stairs=(90, 180, 270, 90), duration=2.0);
+```julia
+using DCMotor
+sys = MotorSystem();
+set_pid(sys; kp=2.0, ki=0.5, output=:angle);
+t, r, y, u = stairs_closed(sys; stairs=(90, 180, 270, 90), duration=2.0);
 ```
 """
 function stairs_closed(sys::MotorSystem;
@@ -492,14 +480,11 @@ en `0`.
   referencia interpolada, la salida medida y la señal de control (voltios).
 
 # Ejemplos
-```julia-repl
-julia> using DCMotor
-
-julia> sys = MotorSystem();
-
-julia> set_pid(sys; kp=2.0, ki=0.5, output=:angle);
-
-julia> t, r, y, u = profile_closed(sys; timevalues=(0, 1, 2, 3), refvalues=(0, 360, 360, 0));
+```julia
+using DCMotor
+sys = MotorSystem();
+set_pid(sys; kp=2.0, ki=0.5, output=:angle);
+t, r, y, u = profile_closed(sys; timevalues=(0, 1, 2, 3), refvalues=(0, 360, 360, 0));
 ```
 """
 function profile_closed(sys::MotorSystem;
