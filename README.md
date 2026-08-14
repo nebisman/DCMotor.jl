@@ -15,8 +15,11 @@ Adicionalmente, las constantes de tiempo están muy sintonizadas con la percepci
 ## Componentes de la plataforma
 
 La siguiente imagen muestra la plataforma **DCMotor** junto con su componentes descritos en la tabla.
-<img src="docs/assets/motor.png" alt="Plataforma DCMotor" width="400">
+<p align="center">
+  <img src="docs/assets/motor.png" alt="Plataforma DCMotor" width="50%">
+</p>
 
+<!--
 | # | Componente |
 |---|---|
 | 1 | Micromotor DC uxcell GA12-N20 6V 150RPM |
@@ -28,6 +31,7 @@ La siguiente imagen muestra la plataforma **DCMotor** junto con su componentes d
 | 7 | Soporte plástico del servomotor |
 | 8 | Rueda que muestra el ángulo y la velocidad del servomotor |
 | 9 | ESP32-S3 con factor de forma Arduino (abajo) |
+-->
 
 ## Instalación y funciones
 
