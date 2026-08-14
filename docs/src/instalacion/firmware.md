@@ -5,8 +5,8 @@ encuentra en [`firmware/esp32_DCMotor`](https://github.com/nebisman/DCMotor.jl/t
 dentro del repositorio del paquete.
 
 Para instalarlo (compilarlo y cargarlo en la placa) se provee el script
-[`cargar_firmware.sh`](https://github.com/nebisman/DCMotor.jl/blob/main/firmware/cargar_firmware.sh),
-disponible en `firmware/` dentro del repositorio. El script:
+[`cargar_firmware.sh`](https://github.com/nebisman/DCMotor.jl/blob/main/firmware/instalador/cargar_firmware.sh),
+disponible en `firmware/instalador/` dentro del repositorio. El script:
 
 1. Verifica si Arduino CLI está instalado; si no lo está, lo instala.
 2. Verifica si el core `esp32:esp32` (Espressif) está instalado; si no lo
@@ -30,7 +30,7 @@ Descargue y ejecute el script en un directorio de trabajo cualquiera (creará
 allí una subcarpeta `esp32_DCMotor/` con el código fuente descargado):
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/nebisman/DCMotor.jl/main/firmware/cargar_firmware.sh
+curl -fsSLO https://raw.githubusercontent.com/nebisman/DCMotor.jl/main/firmware/instalador/cargar_firmware.sh
 chmod +x cargar_firmware.sh
 ./cargar_firmware.sh
 ```
