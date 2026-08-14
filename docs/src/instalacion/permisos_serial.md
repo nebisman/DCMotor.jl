@@ -9,7 +9,7 @@ añada su usuario a dicho grupo, de la siguiente manera:
 sudo usermod -aG dialout $USER
 ```
 
-Luego cierre sesión y vuelva a iniciarla (o reinicie el equipo) para que el
+En donde `SUSER` representa su usuario en linux. Luego cierre sesión y vuelva a iniciarla (o reinicie el equipo) para que el
 cambio de grupo surta efecto. Puede verificar que el usuario quedó incluido
 con:
 

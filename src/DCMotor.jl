@@ -37,8 +37,7 @@ include("graphics.jl")
 # de trabajo actual y crea/puebla datafiles/ y ejemplos/ si aún no existen allí.
 function __init__()
     PATH_DATA[] = pwd()
-    _ensure_dirs()
-    disconnect!(MotorSystem())
+    _ensure_dirs()   
 end
 
 # ── API pública ──────────────────────────────────────────────────────────────
