@@ -375,8 +375,10 @@ Retorna la función de transferencia nominal del motor DC, estimada
 previamente con [`get_fomodel_step`](@ref) o [`get_model_prbs`](@ref) y
 almacenada en `datafiles/DCmotor_fo_model.csv`.
 
-El modelo identificado es de primer orden, `b/(s+a)`, con ganancia `b` y polo
-en `-a`. Según el valor de `output`, la función retorna:
+El modelo identificado es de primer orden con retardo, `b/(s+a)` con retardo
+`L`, con ganancia `b`, polo en `-a` y retardo `L` (en segundos, no incluido
+en la función de transferencia retornada). Según el valor de `output`, la
+función de transferencia retornada es:
 - `:angle` → `b / (s*(s+a))` (se agrega un integrador: de velocidad a
   posición angular).
 - `:speed` → `b / (s+a)` (modelo directo de la velocidad angular).
@@ -390,20 +392,20 @@ en `-a`. Según el valor de `output`, la función retorna:
 # Retorna
 - `G::ControlSystems.TransferFunction`: función de transferencia continua
   del motor DC para la salida solicitada.
+- `L::Float64`: retardo estimado, en segundos.
 
 # Ejemplos
 ```julia
-using DCMotor, ControlSystems
 sys = MotorSystem();
-G_speed = transfer_function(sys, :speed)
-G_angle = transfer_function(sys, :angle)   # incluye el integrador
+G_speed, L = transfer_function(sys, :speed)
+G_angle, L = transfer_function(sys, :angle)   # incluye el integrador
 ```
 """
 function transfer_function(sys::MotorSystem,
                            output::Symbol = :angle)
     
-    b, a , L = read_model(_datafile("DCmotor_fo_model.csv"))
-    b, a  = b[1], a[1] 
+    b, a, L = read_model(_datafile("DCmotor_fo_model.csv"))
+    b, a, L  = b[1], a[1], L[1] 
 
     if output == :angle   # angle   
             num = [b]
@@ -416,7 +418,7 @@ function transfer_function(sys::MotorSystem,
             den = [1.0000, a]
        
     end
-    return ControlSystems.tf(num, den)
+    return ControlSystems.tf(num, den), L
 end
 
 """
@@ -515,8 +517,8 @@ end
 # ── Guardar experimentos ─────────────────────────────────────────────────────
 
 """Guarda las columnas como CSV en PATH_DATA/datafiles."""
-function save_experiment(columns::Vector, filename::String, header::String)
-    mat = hcat(columns...)
+function save_experiment(data::Vector, filename::String, header::String)
+    mat = hcat(data...)
     open(_datafile(filename), "w") do io
         println(io, header)
         for i in axes(mat, 1)

@@ -15,7 +15,18 @@ makedocs(;
     ),
     pages=[
         "Inicio" => "index.md",
-        "Referencia de la API" => "api.md",
+        "Instalación" => [
+            "Instalación del firmware" => "instalacion/firmware.md",
+            "Instalación del software" => [
+                "Instalación del paquete" => "instalacion/paquete.md",
+                "Permisos del puerto serial en linux" => "instalacion/permisos_serial.md",
+            ],
+        ],
+        "Funciones" => [
+            "Información" => "funciones/informacion.md",
+            "Identificación" => "funciones/identificacion.md",
+            "Control" => "funciones/control.md",
+        ],
     ],
 )
 

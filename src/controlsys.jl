@@ -445,7 +445,7 @@ function stairs_closed(sys::MotorSystem;
         println("Error: ", e)
     end
     set_reference(sys, 0.0)  # Volver a referencia cero al finalizar
-    _save_exp([tv, rv, yv, uv], "DCmotor_stairs_closed_exp.csv", "t,r,y,u")
+    save_experiment([tv, rv, yv, uv], "DCmotor_stairs_closed_exp.csv", "t,r,y,u")
     return tv, rv, yv, uv
 end
 
@@ -559,7 +559,7 @@ function profile_closed(sys::MotorSystem;
     end
     
     set_reference(sys, 0.0)  # Volver a referencia cero al finalizar    
-    _save_exp([tv, rv, yv, uv], "DCmotor_profile_closed_exp.csv", "t,r,y,u")
+    save_experiment([tv, rv, yv, uv], "DCmotor_profile_closed_exp.csv", "t,r,y,u")
     return tv, rv, yv, uv
 end
 
@@ -594,17 +594,48 @@ end
 
 
 """
-    stepinfo_real(t, u, y; settling_th=0.02, risetime_th=(0.1, 0.9))
+    stepinfo_exp(res; T=nothing, settling_th=0.02, risetime_th=(0.1, 0.9))
 
-Calcula métricas de respuesta al escalón a partir de datos experimentales reales.
-Detecta automáticamente el instante del escalón y mide tiempos desde allí.
+Calcula métricas de la respuesta al escalón a partir de datos experimentales
+en lazo cerrado, y grafica la respuesta medida (con las métricas anotadas)
+junto con, opcionalmente, la respuesta simulada de un modelo prototipo `T`.
+
+Antes de calcular el sobrepico, el tiempo de estabilización y el tiempo de
+subida, la salida `y` se filtra con un pasabajos (mediante `prefilter`,
+frecuencia de corte 12.5 Hz) para reducir el efecto del ruido de medición.
 
 # Argumentos
-- `t`: vector de tiempos equiespaciados
-- `u`: vector de entrada (escalón)
-- `y`: vector de salida medida
-- `settling_th`: umbral para tiempo de estabilización (default 0.02 = 2%)
-- `risetime_th`: umbrales para tiempo de subida (default 10% y 90%)
+- `res`: tupla `(t, r, y, u)` con los vectores de tiempo, referencia, salida
+  medida y señal de control, tal como los retorna [`step_closed`](@ref).
+
+# Argumentos de palabra clave
+- `T=nothing`: función de transferencia (normalizada, de ganancia estática
+  unitaria) de un modelo prototipo en lazo cerrado; si se suministra, su
+  respuesta al escalón (escalada según el tamaño del escalón experimental)
+  se superpone en la gráfica para comparar con la respuesta medida.
+- `settling_th::Real=0.02`: umbral, como fracción del tamaño del escalón,
+  de la banda usada para el tiempo de estabilización (por defecto, 2 %).
+- `risetime_th::Tuple{Real,Real}=(0.1, 0.9)`: niveles, como fracción del
+  tamaño del escalón, usados para el tiempo de subida (por defecto, entre
+  10 % y 90 %).
+
+# Retorna
+- `info::StepInfoSR`: estructura con las métricas calculadas: valores
+  inicial y final (`y0`, `yf`), tamaño del escalón (`stepsize`), pico y
+  tiempo de pico (`peak`, `peaktime`), sobrepico en % (`overshoot`),
+  subpico y subpico en % (`lowerpeak`, `undershoot`), tiempo de
+  estabilización (`settlingtime`), tiempo de subida (`risetime`), los
+  umbrales usados (`settling_th`, `risetime_th`) y el máximo de la señal de
+  control (`u_max`).
+
+# Ejemplos
+```julia
+using DCMotor
+sys = MotorSystem();
+set_pid(sys; kp=2.0, ki=0.5, output=:angle);
+result = step_closed(sys; r0=0, r1=100, t0=0.5, t1=2.0);
+info = stepinfo_exp(result)
+```
 """
 function stepinfo_exp(res; T = nothing,  settling_th = 0.02, risetime_th = (0.1, 0.9))
     

@@ -1,4 +1,6 @@
-# DCMotor -- Laboratorio portátil de control de ángulo y velocidad angular de un servomotor.
+# DCMotor
+
+## Laboratorio portátil de control de ángulo y velocidad angular en un servomotor.
 
 [![Build Status](https://github.com/nebisman/DCMotor.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/nebisman/DCMotor.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
@@ -16,7 +18,7 @@ Adicionalmente, las constantes de tiempo están muy sintonizadas con la percepci
 
 La siguiente imagen muestra la plataforma **DCMotor** junto con su componentes descritos en la tabla.
 <p align="center">
-  <img src="docs/assets/motor.png" alt="Plataforma DCMotor" width="50%">
+  <img src="docs/assets/motor.png" alt="Plataforma DCMotor" width="70%">
 </p>
 
 <!--
