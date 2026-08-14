@@ -141,45 +141,26 @@ end
 """
     MotorSystem(; port="/dev/ttyUSB0", bauds=460800)
 
-Objeto que representa la interfaz serial entre Julia y la plataforma
-UNDCMotor (placa ESP32). Todas las funciones de comunicación, control e
+Objeto que representa la interfaz  entre Julia y la plataforma
+DCMotor (con base en un microcontrolador ESP32). Todas las funciones de comunicación, control e
 identificación del paquete reciben una instancia de `MotorSystem` como primer
 argumento.
 
-El constructor solo crea la estructura; no abre el puerto serial. Use
-[`connect!`](@ref) para abrir la conexión y [`disconnect!`](@ref) para
-cerrarla (la mayoría de las funciones de alto nivel, como [`set_reference`](@ref)
-o [`step_closed`](@ref), ya se conectan y desconectan automáticamente).
 
 # Argumentos de palabra clave
 - `port::String="/dev/ttyUSB0"`: nombre del puerto serial al que está
-  conectada la placa ESP32 (por ejemplo `"/dev/ttyUSB0"` en Linux, `"COM3"`
+  conectada la placa ESP32 (por ejemplo: `"/dev/ttyUSB0"` en Linux, o  `"COM3"`
   en Windows).
 - `bauds::Int=460800`: velocidad de transmisión (baudios) del puerto serial;
-  debe coincidir con la configurada en el firmware.
+  debe coincidir con la configurada en el firmware. Deje este valor por defecto
+  a menos que haya modificado el firmware.
 
-# Campos
-- `port::String`: puerto serial configurado.
-- `bauds::Int`: velocidad de transmisión.
-- `sp::Union{SerialPort,Nothing}`: objeto de bajo nivel del puerto serial
-  abierto (`nothing` si no está conectado).
-- `topics::Dict{String,String}`: mapa entre comandos internos (p. ej.
-  `"set_pid"`) y los tópicos del protocolo serial del firmware (p. ej.
-  `"/set_pid"`).
-- `queue::Channel{Dict{String,Any}}`: cola interna donde el hilo lector
-  deposita las tramas JSON recibidas del firmware.
-- `reader_task::Union{Task,Nothing}`: tarea asíncrona que lee continuamente
-  el puerto serial.
-- `stop_reader::Threads.Atomic{Bool}`: bandera atómica usada para detener la
-  tarea lectora.
 
 # Ejemplos
 ```julia
-using DCMotor
-sys = MotorSystem(port="/dev/ttyUSB0", bauds=460800);
+sys = MotorSystem(port="/dev/ttyUSB0");
 connect!(sys)
 set_reference(sys, 90.0)
-disconnect!(sys)
 ```
 """
 mutable struct MotorSystem
