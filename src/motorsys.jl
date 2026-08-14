@@ -139,27 +139,27 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    MotorSystem(; port="/dev/ttyUSB0", bauds=460800)
+    MotorSystem(; port=find_port(), bauds=460800)
 
-Objeto que representa la interfaz  entre Julia y la plataforma
+Objeto que representa la interfaz entre Julia y la plataforma
 DCMotor (con base en un microcontrolador ESP32). Todas las funciones de comunicación, control e
 identificación del paquete reciben una instancia de `MotorSystem` como primer
 argumento.
 
 
 # Argumentos de palabra clave
-- `port::String="/dev/ttyUSB0"`: nombre del puerto serial al que está
+- `port::String=find_port()`: nombre del puerto serial al que está
   conectada la placa ESP32 (por ejemplo: `"/dev/ttyUSB0"` en Linux, o  `"COM3"`
-  en Windows).
+  en Windows). Por defecto se detecta automáticamente con [`find_port`](@ref);
+  indíquelo manualmente si hay varias placas conectadas o si la detección falla.
 - `bauds::Int=460800`: velocidad de transmisión (baudios) del puerto serial;
-  debe coincidir con la configurada en el firmware. Deje este valor por defecto
-  a menos que haya modificado el firmware.
+  debe coincidir con la configurada en el firmware. Deje este valor por defecto a menos
+ que se haya tenido que modificar en el firmware.
 
-
-# Ejemplos
+# Ejemplo
 ```julia
-sys = MotorSystem(port="/dev/ttyUSB0");
-connect!(sys)
+using DCMotor
+sys = MotorSystem();
 set_reference(sys, 90.0)
 ```
 """
@@ -172,8 +172,8 @@ mutable struct MotorSystem
     reader_task  :: Union{Task, Nothing}
     stop_reader  :: Threads.Atomic{Bool}
 
-    function MotorSystem(;                        
-            port::String         = "/dev/ttyUSB0",
+    function MotorSystem(;
+            port::String         = find_port(),
             bauds::Int           = 460800)
 
         topics = Dict(
@@ -192,6 +192,92 @@ mutable struct MotorSystem
 end
 
 # ── Conexión / desconexión ───────────────────────────────────────────────────
+
+"""
+    find_port()
+
+Detecta automáticamente el puerto serial al cual está conectada la placa
+ESP32 de la plataforma DCMotor. Recorre los puertos USB-serial visibles en
+el sistema y selecciona aquellos cuyo identificador de fabricante/producto
+(VID/PID) o descripción corresponden a los conversores USB-serial usuales en
+placas ESP32 (CP210x, CH340/CH9102, FTDI, o el USB nativo de Espressif).
+
+# Retorna
+- `String`: nombre del puerto serial detectado (por ejemplo, `"/dev/ttyUSB0"`
+  en Linux o `"COM3"` en Windows).
+
+# Lanza
+- `ErrorException` si no se encuentra ningún puerto candidato, o si se
+  encuentra más de uno y no es posible determinar cuál corresponde a la
+  placa. En ambos casos, debe indicar el puerto manualmente con
+  `MotorSystem(port="...")` o revisar la conexión.
+
+# Ejemplos
+```julia
+using DCMotor
+port = find_port()
+
+    "/dev/ttyUSB0"
+```
+
+Nótese que `MotorSystem()` ya llama a `find_port()` internamente si no se
+indica `port`, por lo que en la mayoría de casos no es necesario invocarla de forma
+explícita:
+
+```julia
+using DCMotor
+sys = MotorSystem();
+```
+"""
+function find_port()
+    known_vid_pid = Set{Tuple{UInt16,UInt16}}([
+        (0x10C4, 0xEA60),  # Silicon Labs CP2102/CP2104
+        (0x1A86, 0x7523),  # WCH CH340/CH341
+        (0x1A86, 0x55D4),  # WCH CH9102
+        (0x0403, 0x6001),  # FTDI FT232
+        (0x303A, 0x1001),  # Espressif USB JTAG/serial debug unit
+    ])
+    known_keywords = ("cp210", "ch340", "ch9102", "wch", "silicon labs",
+                       "espressif", "esp32", "usb-serial", "usb serial", "uart")
+
+    candidates = String[]
+    ports = LibSerialPort.sp_list_ports()
+    try
+        i = 1
+        while true
+            port = unsafe_load(ports, i)
+            port == C_NULL && break
+            if LibSerialPort.sp_get_port_transport(port) == LibSerialPort.SP_TRANSPORT_USB
+                manufacturer = LibSerialPort.sp_get_port_usb_manufacturer(port)
+                product      = LibSerialPort.sp_get_port_usb_product(port)
+                description  = LibSerialPort.sp_get_port_description(port)
+                vid, pid     = LibSerialPort.sp_get_port_usb_vid_pid(port)
+
+                text = lowercase(join((manufacturer, product, description), " "))
+                matched = (UInt16(vid), UInt16(pid)) in known_vid_pid ||
+                          any(kw -> occursin(kw, text), known_keywords)
+                matched && push!(candidates, LibSerialPort.sp_get_port_name(port))
+            end
+            i += 1
+        end
+    finally
+        LibSerialPort.sp_free_port_list(ports)
+    end
+
+    if isempty(candidates) 
+        error(
+        "No se encontró ningún puerto USB-serial compatible con la placa " *
+        "ESP32. Verifique que la plataforma esté conectada y encendida, o " *
+        "indique el puerto manualmente con MotorSystem(port=\"...\").")
+    return nothing
+    elseif length(candidates) > 1
+        error(
+        "Se encontraron varios puertos candidatos: " *
+        join(candidates, ", ") *
+        ". Indique el puerto deseado manualmente con MotorSystem(port=\"...\").")
+    end  
+    return candidates[1]
+end
 
 """Abre el puerto serial e inicia la tarea lectora."""
 function connect!(sys::MotorSystem)

@@ -19,8 +19,8 @@ include("ControlUN.jl")
 
 
 # definicion del sistema
-sys = MotorSystem(port="/dev/ttyUSB0", bauds=460800);
-
+sys = MotorSystem();
+using ControlSystems
 s=tf("s")
 
 # identificacion del sistema

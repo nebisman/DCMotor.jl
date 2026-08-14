@@ -2,11 +2,8 @@
 CurrentModule = DCMotor
 ```
 
-# Información
+# `speed_from_volts`
 
 ```@docs
-MotorSystem
 speed_from_volts
-volts_from_speed
-transfer_function
 ```

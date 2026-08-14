@@ -38,6 +38,7 @@ include("graphics.jl")
 function __init__()
     PATH_DATA[] = pwd()
     _ensure_dirs()
+    disconnect!(MotorSystem())
 end
 
 # ── API pública ──────────────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ export SAMPLING_TIME, BUFFER_SIZE, PRBS_LENGTH
 export MotorSystem
 
 # Conexión
-export connect!, disconnect!
+export connect!, disconnect!, find_port
 
 # Conversiones hex (utilidades)
 export float2hex, hex2float, long2hex, hex2long

@@ -3,7 +3,7 @@
 En Linux, el acceso a los puertos seriales (por ejemplo, `/dev/ttyUSB0`) suele
 estar restringido a los usuarios que pertenecen al grupo `dialout`. Si al
 conectar la plataforma se obtiene un error de permisos (`Permission denied`),
-añada su usuario a dicho grupo:
+añada su usuario a dicho grupo, de la siguiente manera:
 
 ```bash
 sudo usermod -aG dialout $USER
@@ -17,7 +17,7 @@ con:
 groups $USER
 ```
 
-Para identificar el nombre exacto del puerto asignado a la placa ESP32 al
+Para identificar en linux el nombre exacto del puerto asignado a la placa ESP32 al
 conectarla por USB, puede usar:
 
 ```bash
