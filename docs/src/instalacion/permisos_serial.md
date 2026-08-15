@@ -6,20 +6,26 @@ conectar la plataforma se obtiene un error de permisos (`Permission denied`),
 añada su usuario a dicho grupo, de la siguiente manera:
 
 ```bash
-sudo usermod -aG dialout $USER
+sudo usermod -aG dialout Mi_Usuario
 ```
 
-En donde `SUSER` representa su usuario en linux. Luego cierre sesión y vuelva a iniciarla (o reinicie el equipo) para que el
+En donde `Mi_Usuario` representa su usuario actual en linux. Luego cierre sesión y vuelva a iniciarla (o reinicie el equipo) para que el
 cambio de grupo surta efecto. Puede verificar que el usuario quedó incluido
 con:
 
 ```bash
-groups $USER
+groups Mi_Usuario
 ```
 
-Para identificar en linux el nombre exacto del puerto asignado a la placa ESP32 al
-conectarla por USB, puede usar:
+## Verificación
+
+Para identificar en Linux el nombre exacto del puerto asignado a la placa ESP32,
+conéctela por USB y ejecute inmediatamente después:
+
 
 ```bash
-dmesg | grep -i tty
+ls /dev/ttyUSB* /dev/ttyACM* 2>/dev/null
 ```
+
+
+Aparecerá un mensaje con un nombre de dispositivo como `/dev/ttyUSB0` (o `/dev/ttyACM0`), el cual debe usarse para la conexión serial.

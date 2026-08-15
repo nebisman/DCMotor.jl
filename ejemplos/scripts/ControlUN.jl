@@ -1,4 +1,4 @@
-using ControlSystems
+using ControlSystems, ControlSystemsBase
 using LinearAlgebra
 using Polynomials
 using InvertedIndices

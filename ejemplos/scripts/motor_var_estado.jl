@@ -6,11 +6,11 @@ include("ControlUN.jl")
 
 
 # definicion del sistema
-sys = MotorSystem(port="/dev/ttyUSB0");
+sys = MotorSystem();
 s=tf("s")
 
 # identificacion del sistema
-G_ang = transfer_function(sys) 
+G_ang, L = transfer_function(sys) 
 #funcion del ángulo
 
 
@@ -48,7 +48,7 @@ result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 1, t1 =10);stepinfo_exp(result
 
 # ahora con algortimo LQR
 Q = diagm([.00100, 1.0, 100])
-R = diagm([250])
+R = diagm([100])
 K_lqr = lqr(Aest, Best, Q, R)
 
 print("K_lqr: ", K_lqr)

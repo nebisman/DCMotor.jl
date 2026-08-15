@@ -23,7 +23,7 @@ makedocs(;
             ],
         ],
         "Funciones" => [
-            "Información" => [
+            "Utilidades" => [
                 "`MotorSystem`" => "funciones/informacion/MotorSystem.md",
                 "`find_port`" => "funciones/informacion/find_port.md",
                 "`speed_from_volts`" => "funciones/informacion/speed_from_volts.md",

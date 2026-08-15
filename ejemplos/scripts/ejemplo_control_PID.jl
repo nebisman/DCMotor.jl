@@ -11,7 +11,7 @@ sys = MotorSystem(port="/dev/ttyUSB0");
 s=tf("s")
 
 # identificacion del sistema
-G_ang = get_model_prbs(sys; yop=200)
+G_ang, L = get_model_prbs(sys; yop=400)
 
 #funcion del ángulo
 
@@ -64,7 +64,7 @@ Kp = 2.15 * ωn^2 / b
 Ki = ωn^3/b
  
 
-set_pid(sys;  kp=Kp, ki=Ki, kd=Kd, beta=0, N=10, output=:angle, deadzone=0.25)
+set_pid(sys;  kp=Kp, ki=Ki, kd=Kd, beta=0, N=10, output=:angle)
 result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 1, t1 =2);stepinfo_exp(result;T)
 
 

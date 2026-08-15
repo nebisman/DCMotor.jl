@@ -153,14 +153,13 @@ argumento.
   en Windows). Por defecto se detecta automáticamente con [`find_port`](@ref);
   indíquelo manualmente si hay varias placas conectadas o si la detección falla.
 - `bauds::Int=460800`: velocidad de transmisión (baudios) del puerto serial;
-  debe coincidir con la configurada en el firmware. Deje este valor por defecto a menos
- que se haya tenido que modificar en el firmware.
+  debe coincidir con la configurada en el firmware. Deje este valor por defecto a menos que se haya tenido que modificar en el firmware.
 
 # Ejemplo
 ```julia
-using DCMotor
 sys = MotorSystem();
-set_reference(sys, 90.0)
+set_pid(sys;  kp=0.1886, ki=1, kd=0.0069)
+step_closed(sys)
 ```
 """
 mutable struct MotorSystem

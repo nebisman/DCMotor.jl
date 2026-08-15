@@ -105,7 +105,7 @@ set_pid(sys; kp=2.5, ki=0.6, kd=0.05, output=:angle, deadzone=0.15)
 function set_pid(sys::MotorSystem;
                   kp::Real = 1.0, ki::Real = 0.4, kd::Real = 0.0,
                   N::Real = 5.0, beta::Real = 1.0,
-                  output::Symbol = :angle, deadzone::Real = 0.125)
+                  output::Symbol = :angle, deadzone::Real = 0.2)
     type_map = Dict(:angle => 0, :speed => 1)
     haskey(type_map, output) || error("output debe ser :angle o :speed")
 
