@@ -14,8 +14,10 @@ REPO_URL="https://github.com/nebisman/DCMotor.jl.git"
 FQBN="esp32:esp32:esp32s3usbotg"
 ESP32_BOARD_URL="https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
 SKETCH_NAME="esp32_DCMotor"
-WORKDIR="$(pwd)"
+WORKDIR="$HOME/.local/share/dcmotor-firmware"
 BINDIR="$HOME/.local/bin"
+
+mkdir -p "$WORKDIR"
 
 log() { echo "==> $1"; }
 die() { echo "ERROR: $1" >&2; exit 1; }
@@ -64,32 +66,25 @@ arduino-cli lib install "${REQUIRED_LIBS[@]}"
 log "Librerías Arduino instaladas correctamente."
 
 # ── 4. Descargar el firmware desde el repositorio de GitHub ─────────────
-if [[ -f "$WORKDIR/$SKETCH_NAME/$SKETCH_NAME.ino" && -f "$WORKDIR/$SKETCH_NAME/definitions.h" ]]; then
-    log "El directorio '$SKETCH_NAME/' ya contiene $SKETCH_NAME.ino y definitions.h; se omite la descarga."
-else
-    log "Descargando firmware/$SKETCH_NAME desde $REPO_URL..."
-    TMP_CLONE="$(mktemp -d)"
-    trap 'rm -rf "$TMP_CLONE"' EXIT
+log "Descargando firmware/$SKETCH_NAME desde $REPO_URL..."
+TMP_CLONE="$(mktemp -d)"
+trap 'rm -rf "$TMP_CLONE"' EXIT
 
-    git clone --quiet --depth 1 --filter=blob:none --sparse "$REPO_URL" "$TMP_CLONE"
-    git -C "$TMP_CLONE" sparse-checkout set --quiet "firmware/$SKETCH_NAME"
+git clone --quiet --depth 1 --filter=blob:none --sparse "$REPO_URL" "$TMP_CLONE"
+git -C "$TMP_CLONE" sparse-checkout set --quiet "firmware/$SKETCH_NAME"
 
-    [[ -d "$TMP_CLONE/firmware/$SKETCH_NAME" ]] ||
-        die "No se encontró firmware/$SKETCH_NAME en el repositorio."
+[[ -d "$TMP_CLONE/firmware/$SKETCH_NAME" ]] ||
+    die "No se encontró firmware/$SKETCH_NAME en el repositorio."
 
-    if [[ -d "$WORKDIR/$SKETCH_NAME" ]]; then
-        log "Ya existe '$SKETCH_NAME/' en el directorio actual; se sobrescribirá."
-        rm -rf "$WORKDIR/$SKETCH_NAME"
-    fi
-    cp -r "$TMP_CLONE/firmware/$SKETCH_NAME" "$WORKDIR/$SKETCH_NAME"
-    log "Firmware descargado en $WORKDIR/$SKETCH_NAME"
-fi
+rm -rf "$WORKDIR/$SKETCH_NAME"
+cp -r "$TMP_CLONE/firmware/$SKETCH_NAME" "$WORKDIR/$SKETCH_NAME"
+log "Firmware descargado en $WORKDIR/$SKETCH_NAME"
 
-# ── 5. Compilar y subir el firmware ──────────────────────────────────────
+# ── 5. Compilar el firmware ───────────────────────────────────────────────
 log "Compilando el firmware ($FQBN)..."
-arduino-cli compile --fqbn "$FQBN" "$SKETCH_NAME"
+arduino-cli compile --verbose --fqbn "$FQBN" "$WORKDIR/$SKETCH_NAME"
 
-# ── 6. Detectar el puerto de la placa ────────────────────────────────────
+# ── 6. Detectar el puerto de la placa ─────────────────────────────────────
 log "Buscando el puerto de la placa ESP32..."
 PORTS="$(arduino-cli board list --format json | python3 -c '
 import json, sys
@@ -127,10 +122,14 @@ fi
 PORT="${PORT_LIST[0]}"
 log "Puerto detectado: $PORT"
 
-# ── 6. Subir el firmware a la placa ────────────────────────────────────
-
-
+# ── 7. Subir el firmware a la placa ───────────────────────────────────────
 log "Subiendo el firmware al puerto $PORT..."
-arduino-cli upload -p "$PORT" --fqbn "$FQBN" "$SKETCH_NAME"
+arduino-cli upload --verbose -p "$PORT" --fqbn "$FQBN" "$WORKDIR/$SKETCH_NAME"
 
 log "Firmware cargado exitosamente."
+
+# ── 8. Limpiar el directorio del firmware descargado ──────────────────────
+# rm -rf "$WORKDIR/$SKETCH_NAME"
+# log "Directorio '$SKETCH_NAME/' eliminado."
+
+
