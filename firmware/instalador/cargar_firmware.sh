@@ -46,7 +46,24 @@ else
     log "Librerías de ESP32 instaladas correctamente."
 fi
 
-# ── 3. Descargar el firmware desde el repositorio de GitHub ─────────────
+# El core ESP32 usa esptool.py para compilar/subir el firmware, el cual
+# requiere el módulo 'pyserial' de Python.
+if python3 -c "import serial" &>/dev/null; then
+    log "El módulo 'pyserial' de Python ya está instalado."
+else
+    log "El módulo 'pyserial' de Python no está instalado. Iniciando instalación..."
+    python3 -m pip install --user pyserial ||
+        die "No se pudo instalar el módulo 'pyserial' de Python (requerido por esptool.py)."
+    log "Módulo 'pyserial' instalado correctamente."
+fi
+
+# ── 3. Instalar las librerías Arduino requeridas por el firmware ────────
+REQUIRED_LIBS=("ESP32Encoder" "ArduinoJson" "Adafruit NeoPixel")
+log "Instalando las librerías Arduino requeridas por el firmware..."
+arduino-cli lib install "${REQUIRED_LIBS[@]}"
+log "Librerías Arduino instaladas correctamente."
+
+# ── 4. Descargar el firmware desde el repositorio de GitHub ─────────────
 if [[ -f "$WORKDIR/$SKETCH_NAME/$SKETCH_NAME.ino" && -f "$WORKDIR/$SKETCH_NAME/definitions.h" ]]; then
     log "El directorio '$SKETCH_NAME/' ya contiene $SKETCH_NAME.ino y definitions.h; se omite la descarga."
 else
@@ -68,7 +85,11 @@ else
     log "Firmware descargado en $WORKDIR/$SKETCH_NAME"
 fi
 
-# ── 4. Detectar el puerto de la placa ────────────────────────────────────
+# ── 5. Compilar y subir el firmware ──────────────────────────────────────
+log "Compilando el firmware ($FQBN)..."
+arduino-cli compile --fqbn "$FQBN" "$SKETCH_NAME"
+
+# ── 6. Detectar el puerto de la placa ────────────────────────────────────
 log "Buscando el puerto de la placa ESP32..."
 PORTS="$(arduino-cli board list --format json | python3 -c '
 import json, sys
@@ -106,9 +127,8 @@ fi
 PORT="${PORT_LIST[0]}"
 log "Puerto detectado: $PORT"
 
-# ── 5. Compilar y subir el firmware ──────────────────────────────────────
-log "Compilando el firmware ($FQBN)..."
-arduino-cli compile --fqbn "$FQBN" "$SKETCH_NAME"
+# ── 6. Subir el firmware a la placa ────────────────────────────────────
+
 
 log "Subiendo el firmware al puerto $PORT..."
 arduino-cli upload -p "$PORT" --fqbn "$FQBN" "$SKETCH_NAME"

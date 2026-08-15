@@ -4,4 +4,4 @@ docs/build/
 docs/datafiles/
 docs/ejemplos/
 docs/assets/motor.svg
-esp32_DCMotor/
+firmware/esp32_DCMotor/
