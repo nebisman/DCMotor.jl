@@ -12,16 +12,11 @@ encuentra en [`firmware/esp32_DCMotor`](https://github.com/nebisman/DCMotor.jl/t
 
 ## Instalación rápida en Linux (firmware precompilado)
 
-Esta es la forma más simple y rápida de cargar el firmware: el script
-descarga únicamente `esptool` (una herramienta liviana e independiente,
-sin necesidad de Python) y el binario ya compilado del firmware, y lo
-graba directamente en la placa. 
-
-Este script requiere que `bash`, `curl`, `tar` y `udevadm` estén
+Esta es la forma más simple y rápida de cargar el firmware. Se ejecuta un script que  requiere que `bash`, `curl`, `tar` y `udevadm` estén
 disponibles en su instalación de Linux (este último forma parte de
 `udev`, presente en la gran mayoría de las distribuciones). Además, el
 usuario debe pertenecer al grupo `dialout` para tener permisos sobre el
-puerto serial (ver [Permisos del puerto serial en Linux](@ref)).
+puerto serial (ver [Permisos del puerto serial en Linux](@ref)). Ejecute los siguientes comandos en la terminal: 
 
 ```bash
 curl -fsSLO https://raw.githubusercontent.com/nebisman/DCMotor.jl/main/firmware/instalador/flashear_firmware.sh
