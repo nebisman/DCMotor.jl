@@ -40,10 +40,11 @@ Esta alternativa compila el firmware a partir de su código fuente y es
 la indicada para quienes van a modificarlo. Para ello se provee un
 script de instalación que instala todas las dependencias necesarias:
 Arduino CLI y las librerías de programación del ESP32. Este script
-requiere que `bash`, `curl`, `git` y `python3` estén actualmente en su
-instalación de Linux. Además, el usuario debe pertenecer al grupo
-`dialout` para tener permisos sobre el puerto serial (ver [Permisos del
-puerto serial en Linux](@ref)).
+requiere que `bash`, `curl`, `git`, `tar` y `udevadm` estén actualmente en
+su instalación de Linux (este último forma parte de `udev`, presente en
+la gran mayoría de las distribuciones). Además, el usuario debe
+pertenecer al grupo `dialout` para tener permisos sobre el puerto serial
+(ver [Permisos del puerto serial en Linux](@ref)).
 
 **Note que el proceso demora porque debe descargarse la libreria completa de programación del ESP32, la cual es muy estensa. Después de instalada por primera vez, el proceso es muy rápido.**
 
