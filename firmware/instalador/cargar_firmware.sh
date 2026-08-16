@@ -49,15 +49,31 @@ else
 fi
 
 # El core ESP32 usa esptool.py para compilar/subir el firmware, el cual
-# requiere el módulo 'pyserial' de Python.
-if python3 -c "import serial" &>/dev/null; then
-    log "El módulo 'pyserial' de Python ya está instalado."
+# requiere el módulo 'pyserial' de Python. En equipos "frescos" (Debian/
+# Ubuntu recientes con PEP 668) pip rechaza instalar paquetes directamente
+# sobre el Python del sistema ("externally-managed-environment"), así que
+# se crea un entorno virtual dedicado para 'pyserial' y se antepone al PATH
+# para que arduino-cli (y el 'python3' que invoca internamente para correr
+# esptool) lo use de forma transparente.
+VENV_DIR="$WORKDIR/venv"
+if [[ ! -x "$VENV_DIR/bin/python3" ]]; then
+    log "Creando entorno virtual de Python en $VENV_DIR..."
+    python3 -m venv "$VENV_DIR" ||
+        die "No se pudo crear el entorno virtual. Instale el paquete 'python3-venv' (p. ej. 'sudo apt install python3-venv') e intente de nuevo."
+fi
+
+if "$VENV_DIR/bin/python3" -c "import serial" &>/dev/null; then
+    log "El módulo 'pyserial' ya está instalado en el entorno virtual."
 else
-    log "El módulo 'pyserial' de Python no está instalado. Iniciando instalación..."
-    python3 -m pip install --user pyserial ||
-        die "No se pudo instalar el módulo 'pyserial' de Python (requerido por esptool.py)."
+    log "Instalando el módulo 'pyserial' en el entorno virtual..."
+    "$VENV_DIR/bin/pip" install --quiet --upgrade pip pyserial ||
+        die "No se pudo instalar el módulo 'pyserial' (requerido por esptool.py)."
     log "Módulo 'pyserial' instalado correctamente."
 fi
+
+# A partir de aquí, cualquier 'python3' que se invoque (incluido el que usa
+# esptool.py durante compile/upload) resuelve al del entorno virtual.
+export PATH="$VENV_DIR/bin:$PATH"
 
 # ── 3. Instalar las librerías Arduino requeridas por el firmware ────────
 REQUIRED_LIBS=("ESP32Encoder" "ArduinoJson" "Adafruit NeoPixel")
