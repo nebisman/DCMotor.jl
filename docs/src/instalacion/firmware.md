@@ -15,9 +15,7 @@ encuentra en [`firmware/esp32_DCMotor`](https://github.com/nebisman/DCMotor.jl/t
 Esta es la forma más simple y rápida de cargar el firmware: el script
 descarga únicamente `esptool` (una herramienta liviana e independiente,
 sin necesidad de Python) y el binario ya compilado del firmware, y lo
-graba directamente en la placa. No instala Arduino CLI ni las librerías
-de programación del ESP32, por lo que es ideal si solo necesita
-cargar el firmware oficial sin modificar su código fuente.
+graba directamente en la placa. 
 
 Este script requiere que `bash`, `curl`, `tar` y `udevadm` estén
 disponibles en su instalación de Linux (este último forma parte de
@@ -49,9 +47,6 @@ puerto serial en Linux](@ref)).
 
 **Note que el proceso demora porque debe descargarse la libreria completa de programación del ESP32, la cual es muy estensa. Después de instalada por primera vez, el proceso es muy rápido.**
 
-### Pasos de instalación 
-
-#### Alternativa 1
 
 Descargue y ejecute  el script de instalación desde la
 terminal con:
@@ -63,20 +58,4 @@ chmod +x cargar_firmware.sh
 ```
 
 
-#### Alternativa 2
-Descargue el script haciendo clic en el siguiente enlace de descarga directa:
 
-[⬇ Descargar `cargar_firmware.sh`](https://raw.githubusercontent.com/nebisman/DCMotor.jl/main/firmware/instalador/cargar_firmware.sh)
-
-Guárdelo en un directorio de trabajo cualquiera, abra una terminal en
-ese mismo directorio. Otórguele permisos de ejecución a `cargar_firmware.sh` y ejecútelo, así:
-
-```bash
-chmod +x cargar_firmware.sh
-./cargar_firmware.sh
-```
-
-Si la la placa está conectada por USB, el script detecta el puerto, compila el
-firmware y lo carga automáticamente. Si no se detecta ningún puerto
-compatible, o se detecta más de uno, el script se detiene con un mensaje de
-error indicando cómo proceder.
