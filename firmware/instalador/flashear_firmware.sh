@@ -15,7 +15,7 @@
 
 set -euo pipefail
 
-REPO_RAW_URL="https://raw.githubusercontent.com/nebisman/DCMotor.jl/main"
+REPO_RAW_URL="https://raw.githubusercontent.com/nebisman/DCMotor.jl/explorar-ci-firmware"
 FW_BIN_URL="$REPO_RAW_URL/firmware/instalador/bin/esp32_DCMotor.bin"
 CHIP="esp32s3"
 ESPTOOL_VERSION="5.3.1"
