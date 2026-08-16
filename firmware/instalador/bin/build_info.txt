@@ -1,0 +1,33 @@
+esp32_DCMotor.bin — binario precompilado del firmware DCMotor
+================================================================
+
+Este archivo es una imagen de flash fusionada (bootloader + tabla de
+particiones + aplicación) recortada, lista para escribirse en el offset
+0x0 de la placa. El relleno final de 0xFF (espacio libre hasta el tamaño
+completo de la flash) fue eliminado; al flashear con la opción
+--erase-all de esptool se obtiene el mismo resultado que con la imagen
+completa, sin transmitir los bytes de relleno.
+
+Generado desde:
+  Commit fuente:     6f8001d18f4937631402eae88a0ea7140fda65e5
+  Fecha de build:    2026-08-15
+  FQBN:              esp32:esp32:esp32s3usbotg
+  arduino-cli:       1.5.0
+  Core esp32:esp32:  3.3.7 (instalado; índice disponible 3.3.11)
+
+Para regenerarlo tras modificar firmware/esp32_DCMotor:
+
+  arduino-cli compile --fqbn esp32:esp32:esp32s3usbotg --export-binaries \
+      --output-dir /tmp/dcmotor_build firmware/esp32_DCMotor
+
+  # Recortar el relleno de 0xFF final y guardar como esp32_DCMotor.bin:
+  python3 - <<'PY'
+data = open("/tmp/dcmotor_build/esp32_DCMotor.ino.merged.bin", "rb").read()
+i = len(data) - 1
+while i >= 0 and data[i] == 0xFF:
+    i -= 1
+open("firmware/instalador/bin/esp32_DCMotor.bin", "wb").write(data[:i + 1])
+PY
+
+Recuerde actualizar el commit fuente y la fecha en este archivo, y hacer
+commit del nuevo esp32_DCMotor.bin junto con los cambios de firmware.

@@ -55,6 +55,7 @@ fi
 # se crea un entorno virtual dedicado para 'pyserial' y se antepone al PATH
 # para que arduino-cli (y el 'python3' que invoca internamente para correr
 # esptool) lo use de forma transparente.
+
 VENV_DIR="$WORKDIR/venv"
 if [[ ! -x "$VENV_DIR/bin/python3" ]]; then
     log "Creando entorno virtual de Python en $VENV_DIR..."

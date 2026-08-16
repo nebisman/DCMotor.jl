@@ -10,13 +10,44 @@
 El código fuente del firmware del ESP32 usado por la plataforma DCMotor se
 encuentra en [`firmware/esp32_DCMotor`](https://github.com/nebisman/DCMotor.jl/tree/main/firmware/esp32_DCMotor), como parte del repositorio del paquete.
 
-**Note que el proceso demora porque debe descargarse la libreria completa de programación del ESP32, la cual es muy estensa. Después de instalada por primera vez, el proceso es muy rápido.**
+## Instalación rápida en Linux (firmware precompilado)
 
-## Instalación en Linux
+Esta es la forma más simple y rápida de cargar el firmware: el script
+descarga únicamente `esptool` (una herramienta liviana e independiente,
+sin necesidad de Python) y el binario ya compilado del firmware, y lo
+graba directamente en la placa. No instala Arduino CLI ni las librerías
+de programación del ESP32, por lo que es ideal si solo necesita
+cargar el firmware oficial sin modificar su código fuente.
 
-Para una instalación directa del firmware se provee un script de instalación que instala todas las dependencias. Este script requiere que `bash`, `curl`, `git` y `python3` estén actualmente en su instalación de Linux. Además. el
+Este script requiere que `bash`, `curl`, `tar` y `udevadm` estén
+disponibles en su instalación de Linux (este último forma parte de
+`udev`, presente en la gran mayoría de las distribuciones). Además, el
 usuario debe pertenecer al grupo `dialout` para tener permisos sobre el
 puerto serial (ver [Permisos del puerto serial en Linux](@ref)).
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/nebisman/DCMotor.jl/main/firmware/instalador/flashear_firmware.sh
+chmod +x flashear_firmware.sh
+./flashear_firmware.sh
+```
+
+Si la placa está conectada por USB, el script detecta el puerto y graba
+el firmware automáticamente. Si no se detecta ningún puerto compatible,
+o se detecta más de uno, el script se detiene con un mensaje de error
+indicando cómo proceder.
+
+## Instalación desde el código fuente en Linux
+
+Esta alternativa compila el firmware a partir de su código fuente y es
+la indicada para quienes van a modificarlo. Para ello se provee un
+script de instalación que instala todas las dependencias necesarias:
+Arduino CLI y las librerías de programación del ESP32. Este script
+requiere que `bash`, `curl`, `git` y `python3` estén actualmente en su
+instalación de Linux. Además, el usuario debe pertenecer al grupo
+`dialout` para tener permisos sobre el puerto serial (ver [Permisos del
+puerto serial en Linux](@ref)).
+
+**Note que el proceso demora porque debe descargarse la libreria completa de programación del ESP32, la cual es muy estensa. Después de instalada por primera vez, el proceso es muy rápido.**
 
 ### Pasos de instalación 
 
