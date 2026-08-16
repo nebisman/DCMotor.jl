@@ -2,7 +2,7 @@ name: Build ESP32 Firmware
 on:
   push:
     branches:
-      - explorar-ci-firmware
+      - main
     paths:
       - 'firmware/esp32_DCMotor/**'
       - '.github/workflows/build-firmware.yml'
