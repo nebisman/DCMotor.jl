@@ -1,28 +1,34 @@
 #!/usr/bin/env bash
 # cargar_firmware.sh — Instala Arduino CLI y el core ESP32 de Espressif,
-# descarga el firmware de la plataforma DCMotor desde GitHub, detecta el
-# puerto donde está conectada la placa y compila/sube el firmware.
+# descarga el firmware de la plataforma DCMotor desde GitHub, lo compila,
+# detecta el puerto donde está conectada la placa y lo graba con esptool
+# (binario independiente, sin depender de Python).
 #
 # Uso:
 #   ./cargar_firmware.sh
 #
-# Requiere: bash, curl, git, python3 (para el detector de puerto).
+# Requiere: bash, curl, git, tar, udevadm (paquete udev, presente en la
+# mayoría de las distribuciones Linux).
 
 set -euo pipefail
 
 REPO_URL="https://github.com/nebisman/DCMotor.jl.git"
 FQBN="esp32:esp32:esp32s3usbotg"
+CHIP="esp32s3"
 ESP32_BOARD_URL="https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
 SKETCH_NAME="esp32_DCMotor"
+ESPTOOL_VERSION="5.3.1"
 WORKDIR="$HOME/.local/share/dcmotor-firmware"
 BINDIR="$HOME/.local/bin"
 
-mkdir -p "$WORKDIR"
+mkdir -p "$WORKDIR" "$BINDIR"
 
 log() { echo "==> $1"; }
 die() { echo "ERROR: $1" >&2; exit 1; }
 
-for dep in curl git python3; do
+[[ "$(uname -s)" == "Linux" ]] || die "Este instalador solo es compatible con Linux."
+
+for dep in curl git tar udevadm; do
     command -v "$dep" &>/dev/null || die "Se requiere '$dep', pero no está instalado."
 done
 
@@ -48,41 +54,45 @@ else
     log "Librerías de ESP32 instaladas correctamente."
 fi
 
-# El core ESP32 usa esptool.py para compilar/subir el firmware, el cual
-# requiere el módulo 'pyserial' de Python. En equipos "frescos" (Debian/
-# Ubuntu recientes con PEP 668) pip rechaza instalar paquetes directamente
-# sobre el Python del sistema ("externally-managed-environment"), así que
-# se crea un entorno virtual dedicado para 'pyserial' y se antepone al PATH
-# para que arduino-cli (y el 'python3' que invoca internamente para correr
-# esptool) lo use de forma transparente.
+# ── 3. Instalar esptool (binario independiente, sin Python) ─────────────
+# El firmware se graba con el binario autocontenido de esptool en lugar
+# del esptool.py que trae el core ESP32 (el cual depende de Python y del
+# módulo 'pyserial', problemático de instalar en equipos "frescos" por la
+# restricción PEP 668 de pip).
+case "$(uname -m)" in
+    x86_64)          ESPTOOL_ARCH="amd64" ;;
+    aarch64|arm64)   ESPTOOL_ARCH="aarch64" ;;
+    armv7l)          ESPTOOL_ARCH="armv7" ;;
+    *) die "Arquitectura '$(uname -m)' no soportada por los binarios de esptool." ;;
+esac
 
-VENV_DIR="$WORKDIR/venv"
-if [[ ! -x "$VENV_DIR/bin/python3" ]]; then
-    log "Creando entorno virtual de Python en $VENV_DIR..."
-    python3 -m venv "$VENV_DIR" ||
-        die "No se pudo crear el entorno virtual. Instale el paquete 'python3-venv' (p. ej. 'sudo apt install python3-venv') e intente de nuevo."
-fi
-
-if "$VENV_DIR/bin/python3" -c "import serial" &>/dev/null; then
-    log "El módulo 'pyserial' ya está instalado en el entorno virtual."
+if command -v esptool &>/dev/null && esptool version 2>/dev/null | grep -q "$ESPTOOL_VERSION"; then
+    log "esptool $ESPTOOL_VERSION ya está instalado: $(command -v esptool)"
+elif [[ -x "$BINDIR/esptool" ]] && "$BINDIR/esptool" version 2>/dev/null | grep -q "$ESPTOOL_VERSION"; then
+    log "esptool $ESPTOOL_VERSION ya está instalado en $BINDIR."
 else
-    log "Instalando el módulo 'pyserial' en el entorno virtual..."
-    "$VENV_DIR/bin/pip" install --quiet --upgrade pip pyserial ||
-        die "No se pudo instalar el módulo 'pyserial' (requerido por esptool.py)."
-    log "Módulo 'pyserial' instalado correctamente."
+    log "Descargando esptool $ESPTOOL_VERSION (linux-$ESPTOOL_ARCH)..."
+    ESPTOOL_ASSET="esptool-v$ESPTOOL_VERSION-linux-$ESPTOOL_ARCH.tar.gz"
+    ESPTOOL_URL="https://github.com/espressif/esptool/releases/download/v$ESPTOOL_VERSION/$ESPTOOL_ASSET"
+    TMP_ESPTOOL="$(mktemp -d)"
+    trap 'rm -rf "$TMP_ESPTOOL"' EXIT
+    curl -fsSL -o "$TMP_ESPTOOL/esptool.tar.gz" "$ESPTOOL_URL" ||
+        die "No se pudo descargar esptool desde $ESPTOOL_URL."
+    tar -xzf "$TMP_ESPTOOL/esptool.tar.gz" -C "$TMP_ESPTOOL"
+    install -m 755 "$TMP_ESPTOOL/esptool-linux-$ESPTOOL_ARCH/esptool" "$BINDIR/esptool"
+    rm -rf "$TMP_ESPTOOL"
+    trap - EXIT
+    log "esptool instalado correctamente en $BINDIR/esptool."
 fi
+export PATH="$BINDIR:$PATH"
 
-# A partir de aquí, cualquier 'python3' que se invoque (incluido el que usa
-# esptool.py durante compile/upload) resuelve al del entorno virtual.
-export PATH="$VENV_DIR/bin:$PATH"
-
-# ── 3. Instalar las librerías Arduino requeridas por el firmware ────────
+# ── 4. Instalar las librerías Arduino requeridas por el firmware ────────
 REQUIRED_LIBS=("ESP32Encoder" "ArduinoJson" "Adafruit NeoPixel")
 log "Instalando las librerías Arduino requeridas por el firmware..."
 arduino-cli lib install "${REQUIRED_LIBS[@]}"
 log "Librerías Arduino instaladas correctamente."
 
-# ── 4. Descargar el firmware desde el repositorio de GitHub ─────────────
+# ── 5. Descargar el firmware desde el repositorio de GitHub ─────────────
 log "Descargando firmware/$SKETCH_NAME desde $REPO_URL..."
 TMP_CLONE="$(mktemp -d)"
 trap 'rm -rf "$TMP_CLONE"' EXIT
@@ -97,39 +107,42 @@ rm -rf "$WORKDIR/$SKETCH_NAME"
 cp -r "$TMP_CLONE/firmware/$SKETCH_NAME" "$WORKDIR/$SKETCH_NAME"
 log "Firmware descargado en $WORKDIR/$SKETCH_NAME"
 
-# ── 5. Compilar el firmware ───────────────────────────────────────────────
+# ── 6. Compilar el firmware ───────────────────────────────────────────────
 log "Compilando el firmware ($FQBN)..."
-arduino-cli compile --verbose --fqbn "$FQBN" "$WORKDIR/$SKETCH_NAME"
+BUILD_DIR="$WORKDIR/build"
+arduino-cli compile --verbose --fqbn "$FQBN" --export-binaries --output-dir "$BUILD_DIR" "$WORKDIR/$SKETCH_NAME"
+MERGED_BIN="$BUILD_DIR/$SKETCH_NAME.ino.merged.bin"
+[[ -s "$MERGED_BIN" ]] || die "No se generó el binario fusionado esperado en $MERGED_BIN."
 
-# ── 6. Detectar el puerto de la placa ─────────────────────────────────────
+# ── 7. Detectar el puerto de la placa ─────────────────────────────────────
 log "Buscando el puerto de la placa ESP32..."
-PORTS="$(arduino-cli board list --format json | python3 -c '
-import json, sys
 
-known_vid_pid = {
-    ("0x10c4", "0xea60"),  # Silicon Labs CP2102/CP2104
-    ("0x1a86", "0x7523"),  # WCH CH340/CH341
-    ("0x1a86", "0x55d4"),  # WCH CH9102
-    ("0x0403", "0x6001"),  # FTDI FT232
-    ("0x303a", "0x1001"),  # Espressif USB JTAG/serial debug unit
+# Se identifica la placa por su VID:PID (o, en su defecto, por palabras
+# clave del fabricante) entre los dispositivos serie del sistema, sin
+# depender de arduino-cli ni de Python para esta tarea.
+KNOWN_VID_PID=("10c4:ea60" "1a86:7523" "1a86:55d4" "0403:6001" "303a:1001")
+KEYWORDS="cp210|ch340|ch9102|wch|qinheng|silicon labs|espressif|esp32|usb-serial|usb serial|uart"
+
+is_known_board() {
+    local vid="$1" pid="$2" text="$3" pair
+    for pair in "${KNOWN_VID_PID[@]}"; do
+        [[ "$vid:$pid" == "$pair" ]] && return 0
+    done
+    [[ "$text" =~ $KEYWORDS ]] && return 0
+    return 1
 }
-keywords = ("cp210", "ch340", "ch9102", "wch", "qinheng", "silicon labs",
-            "espressif", "esp32", "usb-serial", "usb serial", "uart")
 
-data = json.load(sys.stdin)
-for entry in data.get("detected_ports", []):
-    port = entry.get("port", {})
-    props = port.get("properties") or {}
-    vid = str(props.get("vid", "")).lower()
-    pid = str(props.get("pid", "")).lower()
-    text = " ".join(str(props.get(k, "")) for k in ("manufacturer", "product", "serialNumber")).lower()
-    if (vid, pid) in known_vid_pid or any(kw in text for kw in keywords):
-        print(port.get("address", ""))
-')"
-
-readarray -t PORT_LIST <<<"$PORTS"
-PORT_LIST=("${PORT_LIST[@]/#/}")
-[[ ${#PORT_LIST[@]} -eq 1 && -z "${PORT_LIST[0]}" ]] && PORT_LIST=()
+PORT_LIST=()
+for dev in /dev/ttyACM* /dev/ttyUSB*; do
+    [[ -e "$dev" ]] || continue
+    props="$(udevadm info -q property -n "$dev" 2>/dev/null)" || continue
+    vid="$(grep -oP '(?<=^ID_VENDOR_ID=).*' <<<"$props" | tr '[:upper:]' '[:lower:]')"
+    pid="$(grep -oP '(?<=^ID_MODEL_ID=).*' <<<"$props" | tr '[:upper:]' '[:lower:]')"
+    text="$(grep -oP '(?<=^ID_VENDOR=).*|(?<=^ID_MODEL=).*|(?<=^ID_SERIAL=).*' <<<"$props" | tr '[:upper:]\n' '[:lower:] ')"
+    if is_known_board "$vid" "$pid" "$text"; then
+        PORT_LIST+=("$dev")
+    fi
+done
 
 if [[ ${#PORT_LIST[@]} -eq 0 ]]; then
     die "No se pudo detectar ningún puerto USB-serial compatible con la placa ESP32. Verifique que la plataforma esté conectada y encendida."
@@ -139,13 +152,13 @@ fi
 PORT="${PORT_LIST[0]}"
 log "Puerto detectado: $PORT"
 
-# ── 7. Subir el firmware a la placa ───────────────────────────────────────
-log "Subiendo el firmware al puerto $PORT..."
-arduino-cli upload --verbose -p "$PORT" --fqbn "$FQBN" "$WORKDIR/$SKETCH_NAME"
+# ── 8. Grabar el firmware en la placa ─────────────────────────────────────
+log "Grabando el firmware en el puerto $PORT..."
+esptool --chip "$CHIP" --port "$PORT" write-flash --erase-all 0x0 "$MERGED_BIN"
 
 log "Firmware cargado exitosamente."
 
-# ── 8. Limpiar el directorio del firmware descargado ──────────────────────
+# ── 9. Limpiar el directorio del firmware descargado ──────────────────────
 # rm -rf "$WORKDIR/$SKETCH_NAME"
 # log "Directorio '$SKETCH_NAME/' eliminado."
 
