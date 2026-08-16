@@ -1,0 +1,56 @@
+name: Build ESP32 Firmware
+on:
+  push:
+    branches:
+      - explorar-ci-firmware
+    paths:
+      - 'firmware/esp32_DCMotor/**'
+      - '.github/workflows/build-firmware.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compilar firmware ESP32 (esp32:esp32:esp32s3usbotg)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Instalar Arduino CLI
+        run: |
+          mkdir -p "$HOME/bin"
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR="$HOME/bin" sh
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Instalar el core ESP32 de Espressif
+        run: |
+          arduino-cli core update-index --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core install esp32:esp32 --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+
+      - name: Instalar librerías Arduino requeridas
+        run: arduino-cli lib install "ESP32Encoder" "ArduinoJson" "Adafruit NeoPixel"
+
+      - name: Compilar el firmware (binario fusionado)
+        run: |
+          arduino-cli compile --verbose --fqbn esp32:esp32:esp32s3usbotg \
+            --export-binaries --output-dir build \
+            firmware/esp32_DCMotor
+
+      - name: Recortar el relleno final del binario fusionado
+        run: |
+          python3 - <<'PY'
+          data = open("build/esp32_DCMotor.ino.merged.bin", "rb").read()
+          i = len(data) - 1
+          while i >= 0 and data[i] == 0xFF:
+              i -= 1
+          trimmed = data[: i + 1]
+          open("esp32_DCMotor.bin", "wb").write(trimmed)
+          print(f"Tamaño original: {len(data)} bytes -> recortado: {len(trimmed)} bytes")
+          PY
+          sha256sum esp32_DCMotor.bin
+
+      - name: Subir el binario como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32_DCMotor-firmware
+          path: esp32_DCMotor.bin
+          retention-days: 14
