@@ -7,8 +7,7 @@
 ```
 # Instalación del Firmware
 
-El código fuente del firmware del ESP32 usado por la plataforma DCMotor se
-encuentra en [`firmware/esp32_DCMotor`](https://github.com/nebisman/DCMotor.jl/tree/main/firmware/esp32_DCMotor), como parte del repositorio del paquete.
+
 
 ## Instalación rápida en Linux (firmware precompilado)
 
@@ -32,9 +31,8 @@ indicando cómo proceder.
 ## Instalación rápida en Windows (firmware precompilado)
 
 Equivalente en Windows del instalador rápido de Linux: descarga
-únicamente `esptool` (sin necesidad de Python) y el binario ya
-compilado del firmware, y lo graba directamente en la placa. Requiere
-PowerShell 5.1 (incluido en Windows 10/11) o PowerShell 7. Abra
+únicamente `esptool`  y el binario ya
+compilado del firmware, y lo graba directamente en la placa. Abra
 PowerShell y ejecute:
 
 ```powershell
@@ -50,7 +48,11 @@ un mensaje de error indicando cómo proceder.
 
 ## Instalación desde el código fuente en Linux
 
-Esta alternativa compila el firmware a partir de su código fuente y es
+El código fuente del firmware del ESP32 usado por la plataforma DCMotor se
+encuentra en [`firmware/esp32_DCMotor`](https://github.com/nebisman/DCMotor.jl/tree/main/firmware/esp32_DCMotor), como parte del repositorio del paquete.
+
+
+Esta alternativa compila el firmware a partir del código fuente y es
 la indicada para quienes van a modificarlo. Para ello se provee un
 script de instalación que instala todas las dependencias necesarias:
 Arduino CLI y las librerías de programación del ESP32. Este script

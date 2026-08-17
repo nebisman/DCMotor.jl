@@ -145,7 +145,7 @@ static void speedControlPidTask(void *pvParameters) {
         P = kp*(beta * reference - y); // proportional actions
         D =  ad*D - bd*(y - y_ant); // derivative action
         u = P + I + D ; // control signal
-        if (abs(reference) <= 10 ){
+        if (abs(reference) <= 2.5 ){
             u = 0;
         }
 

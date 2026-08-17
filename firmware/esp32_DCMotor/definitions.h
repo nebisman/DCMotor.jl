@@ -455,7 +455,7 @@ void resumeControl(){
 
 // This function activate the default controller
 void defaultControl(){
-    //reference = DEFAULT_REFERENCE;
+    reference = DEFAULT_REFERENCE;
     vTaskSuspend(h_publishStateTask);
     codeTopic = DEFAULT_TOPIC;
     reset_int=true;
@@ -550,7 +550,7 @@ void  onCommandReceived(char* lastTopic, byte* lastPayload) {
         #if DEBUG
         printf("Reference has been set to %0.2f degrees \n", reference);
         #endif
-        reset_int = true;
+        //reset_int = true;
         defaultControl();
     }
     else if (strstr(lastTopic, USER_SYS_STEP_CLOSED )) {
