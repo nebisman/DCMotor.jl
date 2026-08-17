@@ -45,7 +45,9 @@ function _ensure_dirs()
         mkpath(datafiles_dst)
         datafiles_src = joinpath(pkg_root, "datafiles")
         for f in filter(f -> endswith(f, ".csv"), readdir(datafiles_src))
-            cp(joinpath(datafiles_src, f), joinpath(datafiles_dst, f); force=true)
+            dst = joinpath(datafiles_dst, f)
+            cp(joinpath(datafiles_src, f), dst; force=true)
+            chmod(dst, 0o644)
         end
     end
 
@@ -53,6 +55,14 @@ function _ensure_dirs()
     if !isdir(ejemplos_dst)
         ejemplos_src = joinpath(pkg_root, "ejemplos")
         cp(ejemplos_src, ejemplos_dst; force=true)
+        # cp() conserva los permisos de origen; si el paquete fue instalado
+        # vía Pkg, los archivos en ~/.julia/packages quedan de solo lectura,
+        # por lo que hay que asegurar que la copia del usuario sea escribible.
+        for (root, _, files) in walkdir(ejemplos_dst)
+            for f in files
+                chmod(joinpath(root, f), 0o644)
+            end
+        end
     end
     return nothing
 end
