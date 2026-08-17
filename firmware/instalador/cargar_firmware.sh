@@ -154,7 +154,7 @@ log "Puerto detectado: $PORT"
 
 # ── 8. Grabar el firmware en la placa ─────────────────────────────────────
 log "Grabando el firmware en el puerto $PORT..."
-esptool --chip "$CHIP" --port "$PORT" write-flash --erase-all 0x0 "$MERGED_BIN"
+esptool --chip "$CHIP" --port "$PORT" write-flash 0x0 "$MERGED_BIN"
 
 log "Firmware cargado exitosamente."
 
