@@ -443,7 +443,7 @@ function get_static_model(sys::MotorSystem; points::Int = 20)
             @printf(io, "%.8f,%.8f,%.8f\n", K, b, zm)
     end
 
-       
+    
     
     set_reference(sys, 0.0)  # Volver a referencia cero al finalizar
     println("Modelo estático completado")
@@ -694,9 +694,8 @@ function get_model_prbs(sys::MotorSystem;
     na, nb = 1, 1 
     data = iddata(ym, um, SAMPLING_TIME)
     data = prefilter(data,0, 12.5)  # Eliminar tendencia constante
-    Gh = arx(data, na, nb,inputdelay=1, estimator = wtls_estimator(ym, na, nb)) 
+    Gh = arx(data, na, nb, inputdelay=1, estimator = wtls_estimator(data.y, na, nb)) 
     G1 = d2c(Gh)
-
     u_matrix = reshape(um, 1, :)
     res = lsim(G1, u_matrix, t)
     ysim =  vec(res.y)
