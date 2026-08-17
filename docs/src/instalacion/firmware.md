@@ -29,6 +29,25 @@ el firmware automáticamente. Si no se detecta ningún puerto compatible,
 o se detecta más de uno, el script se detiene con un mensaje de error
 indicando cómo proceder.
 
+## Instalación rápida en Windows (firmware precompilado)
+
+Equivalente en Windows del instalador rápido de Linux: descarga
+únicamente `esptool` (sin necesidad de Python) y el binario ya
+compilado del firmware, y lo graba directamente en la placa. Requiere
+PowerShell 5.1 (incluido en Windows 10/11) o PowerShell 7. Abra
+PowerShell y ejecute:
+
+```powershell
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/nebisman/DCMotor.jl/main/firmware/instalador/flashear_firmware.ps1 -OutFile flashear_firmware.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\flashear_firmware.ps1
+```
+
+Igual que en Linux, si la placa está conectada por USB el script
+detecta el puerto (`COMx`) y graba el firmware automáticamente; si no
+detecta ningún puerto compatible, o detecta más de uno, se detiene con
+un mensaje de error indicando cómo proceder.
+
 ## Instalación desde el código fuente en Linux
 
 Esta alternativa compila el firmware a partir de su código fuente y es
