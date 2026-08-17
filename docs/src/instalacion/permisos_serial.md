@@ -19,13 +19,16 @@ groups Mi_Usuario
 
 ## Verificación
 
-Para identificar en Linux el nombre exacto del puerto asignado a la placa ESP32,
-conéctela por USB y ejecute inmediatamente después:
-
+Para identificar en Linux el nombre exacto del puerto asignado a la placa
+ESP32, conéctela por USB y ejecute en la terminal:
 
 ```bash
-ls /dev/ttyUSB* /dev/ttyACM* 2>/dev/null
+curl -fsSLO https://raw.githubusercontent.com/nebisman/DCMotor.jl/main/firmware/instalador/encontrar_puerto.sh
+chmod +x encontrar_puerto.sh
+./encontrar_puerto.sh
 ```
 
-
-Aparecerá un mensaje con un nombre de dispositivo como `/dev/ttyUSB0` (o `/dev/ttyACM0`), el cual debe usarse para la conexión serial.
+Este script identifica la placa entre los dispositivos serie del sistema, y
+reporta el puerto detectado, por ejemplo `Puerto detectado: /dev/ttyUSB0`,
+el cual debe usarse para la conexión serial. Si no detecta ningún puerto, o
+detecta más de uno, verifique que la placa esté conectada y encendida.
