@@ -98,7 +98,7 @@ TMP_CLONE="$(mktemp -d)"
 trap 'rm -rf "$TMP_CLONE"' EXIT
 
 git clone --quiet --depth 1 --filter=blob:none --sparse "$REPO_URL" "$TMP_CLONE"
-git -C "$TMP_CLONE" sparse-checkout set --quiet "firmware/$SKETCH_NAME"
+git -C "$TMP_CLONE" sparse-checkout set "firmware/$SKETCH_NAME"
 
 [[ -d "$TMP_CLONE/firmware/$SKETCH_NAME" ]] ||
     die "No se encontró firmware/$SKETCH_NAME en el repositorio."
@@ -158,8 +158,6 @@ esptool --chip "$CHIP" --port "$PORT" write-flash --erase-all 0x0 "$MERGED_BIN"
 
 log "Firmware cargado exitosamente."
 
-# ── 9. Limpiar el directorio del firmware descargado ──────────────────────
-# rm -rf "$WORKDIR/$SKETCH_NAME"
-# log "Directorio '$SKETCH_NAME/' eliminado."
+
 
 

@@ -72,5 +72,22 @@ chmod +x cargar_firmware.sh
 ./cargar_firmware.sh
 ```
 
+## Instalación desde el código fuente en Windows
+
+Equivalente en Windows del instalador desde el código fuente de Linux.
+Instala Arduino CLI y las librerías de programación del ESP32,
+descarga el código fuente del firmware, lo compila y lo graba en la
+placa. Requiere PowerShell 5.1 (incluido en Windows 10/11) o
+PowerShell 7, y [Git para Windows](https://git-scm.com/download/win).
+
+**Note que el proceso demora porque debe descargarse la libreria completa de programación del ESP32, la cual es muy estensa. Después de instalada por primera vez, el proceso es muy rápido.**
+
+Abra PowerShell y ejecute:
+
+```powershell
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/nebisman/DCMotor.jl/main/firmware/instalador/cargar_firmware.ps1 -OutFile cargar_firmware.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\cargar_firmware.ps1
+```
 
 
