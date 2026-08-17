@@ -455,7 +455,7 @@ void resumeControl(){
 
 // This function activate the default controller
 void defaultControl(){
-    reference = DEFAULT_REFERENCE;
+    //reference = DEFAULT_REFERENCE;
     vTaskSuspend(h_publishStateTask);
     codeTopic = DEFAULT_TOPIC;
     reset_int=true;
