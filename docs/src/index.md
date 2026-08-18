@@ -26,7 +26,7 @@ Control).
 
 ## Introducción rápida
 
-Instaler el paquete directamente desde este repositorio, así:
+Instale el paquete directamente desde este repositorio, así:
 
 ```julia
 using Pkg
