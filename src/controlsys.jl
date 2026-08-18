@@ -120,7 +120,7 @@ function set_pid(sys::MotorSystem;
     )
     connect!(sys)
     send_command!(sys, "set_pid", payload)
-    set_reference(sys, 0);  
+    set_reference(sys, 0)
     println("PID actualizado: kp=$kp  ki=$ki  kd=$kd  N=$N  β=$beta")
     return nothing
 end
@@ -219,7 +219,7 @@ function set_controller(sys::MotorSystem, controller;
     )
     connect!(sys)
     send_command!(sys, "set_gencon", payload)
-    set_reference(sys, 0);   
+    set_reference(sys, 0)
     println("Controlador cargado en Motor")
     return nothing
 end
@@ -336,7 +336,7 @@ function step_closed(sys::MotorSystem;
         println("Error: ", e)    
 
     end
-    #set_reference(sys, 0.0) # Volver a referencia cero al finalizar
+    set_reference(sys, 0)   
 
     save_experiment([tv, rv, yv, uv], "DCmotor_step_closed_exp.csv", "t,r,y,u")
     return tv, rv, yv, uv
@@ -444,7 +444,8 @@ function stairs_closed(sys::MotorSystem;
     catch e
         println("Error: ", e)
     end
-    set_reference(sys, 0.0)  # Volver a referencia cero al finalizar
+    set_reference(sys, 0)
+   
     save_experiment([tv, rv, yv, uv], "DCmotor_stairs_closed_exp.csv", "t,r,y,u")
     return tv, rv, yv, uv
 end
@@ -557,8 +558,7 @@ function profile_closed(sys::MotorSystem;
     catch e
         println("Error: ", e)
     end
-    
-    set_reference(sys, 0.0)  # Volver a referencia cero al finalizar    
+    set_reference(sys, 0)
     save_experiment([tv, rv, yv, uv], "DCmotor_profile_closed_exp.csv", "t,r,y,u")
     return tv, rv, yv, uv
 end

@@ -24,11 +24,11 @@ using ControlSystems
 s=tf("s")
 
 # identificacion del sistema
-G = get_model_prbs(sys; yop=360,sigma=100)
+G, L = get_model_prbs(sys; yop=360,sigma=100, usefile=true)
 #G = get_fomodel_step(sys; yop=360)
 
 # parametros del sistema
-
+using ControlSystems
 a = denvec(G)[1][2]
 b = numvec(G)[1][1]
 
@@ -61,7 +61,7 @@ result = step_closed(sys; r0 = 00, r1 =400,  t0 = 1.5, t1 =2);
 stepinfo_exp(result;T=T)# %% iteraciones
 
 # calculo de las constantes
-
+set_reference(sys, 5)
 
 ωgc = 15
 Gd=G*delay(0.02)

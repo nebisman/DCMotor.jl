@@ -112,8 +112,8 @@ function step_open(sys::MotorSystem;
 
 
     end
-    set_reference(sys, 0.0)  # Volver a referencia cero al finalizar
-
+    set_reference(sys, 0)
+  # Volver a referencia cero al finalizar
 
     save_experiment([tv, uv, yv], "DCmotor_step_open_exp.csv", "t,u,y")
     return tv, uv, yv
@@ -227,7 +227,8 @@ function prbs_open(sys::MotorSystem;
         println("Error: ", e)
 
     end
-    set_reference(sys, 0.0)  # Volver a referencia cero al finalizar        
+    set_reference(sys, 0)
+    # Volver a referencia cero al finalizar        
 
     save_experiment([tv, uv, yv], "DCmotor_prbs_open_exp.csv", "t,u,y")
     return tv, uv, yv
@@ -272,10 +273,12 @@ function _step_open_static(sys::MotorSystem, u1::Real,  t1::Real, uee::Vector{Fl
     xticks=0:1:10, yticks=0:100:800,
     margin=5Plots.mm)
 
-    # if !isempty(yee)
-    #     scatter!(plt,subplot=2, [u1], [yee[1]], color=:orange, marker=:circle,
-    #      legendfontsize = leg_size, fg_legend = "#d4aa00", markersize=3, linewidth=1)
-    # end
+    if !isempty(yee)
+         scatter!(subplot=2, uee, yee, color=:green, marker=:circle, label="",
+               markersize=3, linewidth=1)
+         scatter!(subplot=2, [uee[end]], [yee[end]], color=:orange, marker=:circle,
+          legendfontsize = leg_size, fg_legend = "#d4aa00", markersize=3, linewidth=1)
+     end
 
 
     redraw!(plt)
@@ -445,7 +448,8 @@ function get_static_model(sys::MotorSystem; points::Int = 20)
 
     
     
-    set_reference(sys, 0.0)  # Volver a referencia cero al finalizar
+    set_reference(sys, 0)
+    # Volver a referencia cero al finalizar
     println("Modelo estático completado")
     return uee, yee
 end
