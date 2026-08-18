@@ -41,9 +41,10 @@ void computeReference() {
                 #ifdef DEBUG
                 printf("Closed loop step response completed\n");
                 #endif
-                encoderMotor.setCount(0);
-                encoderPot.setCount(0);
                 voltsToMotor(0);
+                reference = 0;
+                encoderMotor.setCount(0);
+                encoderPot.setCount(0);            
                 defaultControl();
             }
             break;
@@ -61,9 +62,10 @@ void computeReference() {
                 #ifdef DEBUG
                 printf("Stairs closed loop response completed\n");
                 #endif
-                encoderMotor.setCount(0);
-                encoderPot.setCount(0);
                 voltsToMotor(0);
+                reference = 0;
+                encoderMotor.setCount(0);
+                encoderPot.setCount(0);            
                 defaultControl();
 
             }
@@ -82,9 +84,10 @@ void computeReference() {
                 printf("Closed loop profile response completed\n");
                 #endif
 
-                encoderMotor.setCount(0);
-                encoderPot.setCount(0);
                 voltsToMotor(0);
+                reference = 0;
+                encoderMotor.setCount(0);
+                encoderPot.setCount(0);            
                 defaultControl();
             }
             break;
@@ -145,7 +148,7 @@ static void speedControlPidTask(void *pvParameters) {
         P = kp*(beta * reference - y); // proportional actions
         D =  ad*D - bd*(y - y_ant); // derivative action
         u = P + I + D ; // control signal
-        if (abs(reference) <= 2.5 ){
+        if (abs(reference) <= 5 ){
             u = 0;
         }
 
@@ -403,7 +406,7 @@ static void speedGenControlTask(void *pvParameters) {
         }
 
 
-        if (abs(reference) <= 10 ){
+        if (abs(reference) <= 5){
             usat = 0;
         }
 
@@ -460,11 +463,13 @@ const TickType_t taskPeriod = (uint32_t) (1000 * h);
 
         }
         else if (np == total_time + 1) {
-            voltsToMotor(0);
             #ifdef DEBUG
             printf("Open loop PBRS response completed\n");
             #endif
-            encoderMotor.clearCount();
+            voltsToMotor(0);
+            reference = 0;
+            encoderMotor.setCount(0);
+            encoderPot.setCount(0);            
             defaultControl();
         }
         vTaskDelayUntil(&xLastWakeTime, taskPeriod);
@@ -519,13 +524,14 @@ static void stepOpenTask(void *pvParameters) {
             displayLed(u, -5 ,5, 0.2, 0);
         }
         else if (np == total_time + 1 ){
-            voltsToMotor( 0);
-            encoderMotor.clearCount();
             #ifdef DEBUG
             printf("Open loop step response completed\n");
             #endif
-            vTaskSuspend(h_publishStateTask);
-            vTaskSuspend(h_stepOpenTask);
+            voltsToMotor(0);
+            reference = 0;
+            encoderMotor.setCount(0);
+            encoderPot.setCount(0);            
+            defaultControl();
 
         }
         vTaskDelayUntil(&xLastWakeTime, taskPeriod);
