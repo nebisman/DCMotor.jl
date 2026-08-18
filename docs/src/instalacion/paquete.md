@@ -14,9 +14,9 @@ Luego, para empezar a usarlo, ejecute el siguiente código:
 using DCMotor
 sys = MotorSystem();
 set_pid(sys;  kp=0.1886, ki=1, kd=0.0069)
-step_closed(sys)
+set_reference(sys,360)
 ```
-El sistema debe reaccionar y mostrar la respuesta al escalón de ángulo.
+El sistema debe reaccionar y mostrar el cambio a una referencia de $$360^o$$ en ángulo.
 
 ## Notas
 Cuando el usuario carga el paquete por primera vez en un directorio de trabajo, se crean automáticamente allí las dos siguientes carpetas:
