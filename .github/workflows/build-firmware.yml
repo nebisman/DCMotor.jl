@@ -56,7 +56,7 @@ jobs:
           sha256sum firmware/instalador/bin/esp32_DCMotor.bin
 
       - name: Subir el binario como artefacto
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: esp32_DCMotor-firmware
           path: firmware/instalador/bin/esp32_DCMotor.bin
