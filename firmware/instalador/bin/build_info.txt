@@ -11,7 +11,7 @@ completa, sin transmitir los bytes de relleno.
 Generado automáticamente por GitHub Actions
 (.github/workflows/build-firmware.yml) a partir de
 firmware/esp32_DCMotor:
-  Commit fuente:     2b40a581b1162f0823b9626aad497f7b198ea07e
+  Commit fuente:     7f5ca2e83ef848c6a6895b588c9fd41053df3181
   Fecha de build:    2026-08-19
   FQBN:              esp32:esp32:esp32s3usbotg
   arduino-cli:       1.5.1
