@@ -8,6 +8,7 @@ using JSON3
 using DelimitedFiles
 using Printf
 using Statistics
+using ControlSystemsBase
 
 # ── Constantes del protocolo ─────────────────────────────────────────────────
 
@@ -512,7 +513,8 @@ function transfer_function(sys::MotorSystem,
             den = [1.0000, a]
        
     end
-    return ControlSystems.tf(num, den), L
+    G = tf(num, den)
+    return G, L
 end
 
 """
