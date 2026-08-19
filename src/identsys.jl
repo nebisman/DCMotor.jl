@@ -4,7 +4,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 using Plots
-using ControlSystems
+using ControlSystemsBase
 using LinearAlgebra
 using Statistics
 using Printf

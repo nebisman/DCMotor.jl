@@ -5,7 +5,6 @@
 
 using LibSerialPort
 using JSON3
-using Interpolations
 using DelimitedFiles
 using Printf
 using Statistics

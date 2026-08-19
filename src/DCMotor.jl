@@ -9,12 +9,11 @@ module DCMotor
 # ── Dependencias externas ────────────────────────────────────────────────────
 using LibSerialPort
 using JSON3
-using Interpolations
 using DelimitedFiles
-using ControlSystems
 using ControlSystemsBase
 using LinearAlgebra
 using Plots
+using Polynomials
 using Statistics
 using Printf
 using RobustAndOptimalControl
@@ -23,13 +22,11 @@ using LaTeXStrings
 using Base64
 using HypertextLiteral: @htl
 
-
-
-
 # ── Código fuente ────────────────────────────────────────────────────────────
 include("motorsys.jl")
 include("controlsys.jl")
 include("identsys.jl")
+include("control_design.jl")
 include("graphics.jl")
 
 # ── Inicialización ───────────────────────────────────────────────────────────
@@ -74,5 +71,8 @@ export step_closed, stairs_closed, profile_closed, stepinfo_exp
 # Funciones de identificación (identsys)
 export step_open, prbs_open
 export get_static_model, get_fomodel_step, get_model_prbs
+
+# Funciones de diseño de controladores (control_design)
+export dise_2gdl, dise_1gdl
 
 end # module DCMotor

@@ -24,7 +24,7 @@ Las instrucciones de instalación del paquete, sus funciones y la instalación d
 [documentación](https://nebisman.github.io/DCMotor.jl). 
 
 
-## Introducción rápida
+### Introducción rápida
 
 Instale el paquete directamente desde este repositorio, así:
 

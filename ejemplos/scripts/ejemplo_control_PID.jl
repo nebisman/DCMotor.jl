@@ -1,7 +1,9 @@
 import Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 using DCMotor
+
 include("ControlUN.jl")
+
 
 
 
@@ -11,10 +13,12 @@ sys = MotorSystem(port="/dev/ttyUSB0");
 s=tf("s")
 
 # identificacion del sistema
-G_ang, L = get_model_prbs(sys; yop=400)
+G, L = get_model_prbs(sys; yop=400, usefile=true)
 
 #funcion del ángulo
-
+using Alert
+G_ang = G/s
+C, T, Gur, S, ind_error=asigne_polos(G_ang, [-5+5im,-5-5im,-10.0])
 
 # parametros del sistema
 b = numvec(G_ang)[1][1]

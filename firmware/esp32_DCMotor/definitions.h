@@ -13,7 +13,7 @@
 
 
 // This is the pwm configuration for the DC motor system
-#define  FREQUENCY_PWM     100
+#define  FREQUENCY_PWM     200
 #define  RESOLUTION_PWM    12
 #define  PIN_AIN1          2
 #define  PIN_AIN2          1 // WEMOS 4  // ESP32S3 1

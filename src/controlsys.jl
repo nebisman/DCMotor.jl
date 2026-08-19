@@ -3,7 +3,7 @@
 #  LB 2026 – MIT License
 # ═══════════════════════════════════════════════════════════════════════════════
 
-using ControlSystems
+using ControlSystemsBase
 using LinearAlgebra
 using Plots
 using Printf
@@ -22,29 +22,27 @@ using LaTeXStrings
 """
     set_reference(sys::MotorSystem, ref_value::Real=50.0)
 
-Fija la referencia  del lazo de control activo en el firmware del
-ESP32 al valor `ref_value`.
+Fija la referencia de velocidad o ángulo de la plataforma DCMMotor al valor `ref_value`.
 
 # Argumentos
-- `sys::MotorSystem`: objeto de la plataforma.
-- `ref_value::Real=50.0`: valor de referencia a fijar. Sus unidades dependen
-  del tipo de control activo en el ESP32 (grados si `output=:angle`,
+- `sys::MotorSystem`: objeto que representa la plataforma.
+- `ref_value::Real=90.0`: valor de referencia a fijar. Sus unidades dependen
+  del tipo de control activo en la plataforma (grados si `output=:angle`,
   grados/s si `output=:speed`; ver [`set_pid`](@ref) y [`set_controller`](@ref)).
 
 # Retorna
 - `nothing`. Como efecto secundario, imprime en consola la referencia fijada.
 
-# Ejemplos
+# Ejemplo
 ```julia
 using DCMotor
 sys = MotorSystem();
-set_pid(sys; kp=2.0, ki=0.5, output=:angle);
 set_reference(sys, 180.0)
 
-    Referencia fijada a 180.00
+    "Referencia fijada a 180.00"
 ```
 """
-function set_reference(sys::MotorSystem, ref_value::Real = 50.0)
+function set_reference(sys::MotorSystem, ref_value::Real =90.0)
     connect!(sys)
     send_command!(sys, "set_ref", Dict("reference" => float2hex(ref_value)))
     disconnect!(sys)      
@@ -53,59 +51,68 @@ function set_reference(sys::MotorSystem, ref_value::Real = 50.0)
 end
 
 
+
 # ═══════════════════════════════════════════════════════════════════════════════
 #  set_pid
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    set_pid(sys::MotorSystem; kp=1.0, ki=0.4, kd=0.0, N=5.0, beta=1.0,
+    set_pid(sys::MotorSystem; kp=0.2164, ki=1.8122, kd=0.004244, N=10.0, beta=0.0,
             output=:angle, deadzone=0.125)
 
-Configura y carga en el firmware del ESP32 los parámetros de un controlador
-PID, con filtro en la acción derivativa y ponderación del punto de
-ajuste (*setpoint weighting*) en la acción proporcional. Después de cargar el
-controlador, fija la referencia en `0`.
+Esta función configura los cinco parámetros `kp`, `ki`, `kd`, `N` y `beta` de
+un controlador PID de 2-GDL (dos grados de libertad), como el mostrado en la siguiente figura:
 
-La ley de control implementada en el firmware corresponde a:
-
-``u(t) = k_p\\,(\\beta r - y) + k_i \\int (r - y)\\,dt - k_d \\dfrac{dy_f}{dt}``
-
-donde `y_f` es la salida `y` filtrada con un filtro de primer orden de
-coeficiente `N`.
+![Diagrama de bloques del controlador PID de dos grados de libertad](../../assets/pid2gdl.png)
 
 # Argumentos
-- `sys::MotorSystem`: objeto de la plataforma.
+- `sys::MotorSystem`: objeto que representa la plataforma DCMotor.
 
 # Argumentos de palabra clave
-- `kp::Real=1.0`: ganancia proporcional.
-- `ki::Real=0.4`: ganancia integral.
-- `kd::Real=0.0`: ganancia derivativa.
-- `N::Real=5.0`: coeficiente del filtro de la acción derivativa (a mayor
-  `N`, menos filtrado).
-- `beta::Real=1.0`: ponderación del punto de ajuste en la acción
-  proporcional (entre `0` y `1`). Con `beta=1` la acción proporcional se aplica sobre el error completo
-  `(r - y)` y se programa un PID estándar de 1 grado de libertad, mientras que con `beta=0` la acción proporcional se aplica solo sobre la salida `y` (control de retroalimentación pura).
+- `kp::Real=0.2164`: ganancia proporcional del controlador PID.
+- `ki::Real=1.8122`: ganancia integral del controlador PID.
+- `kd::Real=0.004244`: ganancia derivativa del controlador PID.
+- `N::Real=10.0`: coeficiente del filtro del derivador.
+- `beta::Real=0.0`: ponderación del punto de ajuste (*setpoint weighting*)
+  del controlador PID.
 - `output::Symbol=:angle`: variable controlada, `:angle` (ángulo) o
-  `:speed` (velocidad).
+  `:speed` (velocidad angular).
 - `deadzone::Real=0.125`: zona muerta de la señal de control, en voltios,
   para evitar *chattering* del motor cerca de cero.
 
 # Retorna
-- `nothing`. Imprime en consola los parámetros configurados.
+- `nothing`, una vez que los parámetros del PID se han actualizado
+  correctamente. Imprime en consola los parámetros configurados.
 
-# Ejemplos
+# Notas
+- Cuando `beta=1.0`, el PID resultante corresponde al PID estándar de un grado
+  de libertad (1-DOF) descrito en la mayoría de los libros de texto.
+- Esta implementación se basa en el algoritmo formulado en el libro [*Feedback
+  Systems: An Introduction for Scientists and Engineers*](https://fbswiki.org/wiki/index.php/PID_Control),
+  segunda edición, de Åström y Murray. El algoritmo usa un periodo de muestreo
+  del controlador de 0.02 segundos, apropiado para la plataforma DCMotor.
+
+# Ejemplo
+Primero, asegúrese de haber importado el paquete DCMotor y de haber definido
+el sistema, así:
+
 ```julia
 using DCMotor
 sys = MotorSystem();
-set_pid(sys; kp=2.5, ki=0.6, kd=0.05, output=:angle, deadzone=0.15)
+```
 
-    PID actualizado: kp=2.5  ki=0.6  kd=0.05  N=5.0  β=1.0
+Luego, el controlador PID se programa así:
+
+```julia
+set_pid(sys; kp=0.2, ki=1.0, kd=0.0082, N=10.0, beta=0.0, output=:angle, deadzone=0.15)
+
+    "PID actualizado: kp=0.2  ki=1.0  kd=0.0082  N=10.0  β=0.0"
 ```
 """
 function set_pid(sys::MotorSystem;
-                  kp::Real = 1.0, ki::Real = 0.4, kd::Real = 0.0,
-                  N::Real = 5.0, beta::Real = 1.0,
-                  output::Symbol = :angle, deadzone::Real = 0.2)
+                  kp::Real = 0.2164, ki::Real = 1.8122, kd::Real = 0.004244,
+                  N::Real = 10.0, beta::Real = 0.0,
+                  output::Symbol = :angle, deadzone::Real = 0.125)
     type_map = Dict(:angle => 0, :speed => 1)
     haskey(type_map, output) || error("output debe ser :angle o :speed")
 
@@ -133,41 +140,87 @@ end
 """
     set_controller(sys::MotorSystem, controller; output=:angle, deadzone=0.2)
 
-Carga en el firmware del ESP32 un controlador general, de una entrada
-(1 grado de libertad) o de dos entradas (2 grados de libertad, "dos
-parámetros"), dado como función de transferencia continua de
-`ControlSystems.jl`. Internamente el controlador se convierte a espacio de
-estados, se discretiza con el método bilineal (Tustin) al periodo de
-muestreo `SAMPLING_TIME`, y se calcula una ganancia de observador (tipo
-Kalman) que el firmware usa como mecanismo anti-windup. Después de cargar el
-controlador, fija la referencia en `0`.
+Programa un controlador en la plataforma DCMotor. El controlador se define como una función de transferencia en el dominio de
+Laplace `s`, la cual es automáticamente discretizada.
+
+Esta función permite programar un controlador estándar de 1 grado de
+libertad (1-GDL), como el mostrado en la siguiente figura:
+
+![Controlador de 1 grado de libertad](../../assets/controller_1gdl.png)
+
+A su vez, esta misma función permite programar un controlador de 2
+grados de libertad, como se muestra a continuación:
+
+![Controlador de 2 grados de libertad](../../assets/controller_2gdl.png)
 
 # Argumentos
-- `sys::MotorSystem`: objeto de la plataforma.
-- `controller`: función de transferencia (`ControlSystems.TransferFunction`)
-  del controlador.
-  - Si es SISO (una entrada), se interpreta como controlador de 1 grado de
-    libertad: `u = C(s)·(r − y)`.
-  - Si es 1×2 (dos entradas), se interpreta como controlador de 2 grados de
-    libertad: `u = C₁(s)·r + C₂(s)·y`, donde `C₁` es la primera columna y
-    `C₂` la segunda.
+- `sys::MotorSystem`:  objeto que representa la plataforma DCMotor.
+- `controller`: función de transferencia continua (`ControlSystems.TransferFunction`)
+  en el dominio de Laplace `s`.
+  - Si ``C`` es 1x1 (una entrada y una salida), se interpreta como controlador de 1 grado de
+    libertad:
+    
+    ``u = C·(r - y)``
+
+  - Si  ``C=[C_1\\quad C_2]`` es una matriz 1×2 (dos entradas y una salida), se interpreta como controlador de 2 grados de
+    libertad: 
+
+    ``u = C_1·r - C_2·y``
+    
+    donde ``C_1=\\frac{L}{A}`` es la primera columna y
+    ``C_2=\\frac{M}{A}`` es la segunda.
 
 # Argumentos de palabra clave
-- `output::Symbol=:angle`: variable controlada, `:angle` o `:speed`.
+- `output::Symbol=:angle`: variable controlada, `:angle` (ángulo) o
+  `:speed` (velocidad angular).
 - `deadzone::Real=0.2`: zona muerta de la señal de control, en voltios.
 
 # Retorna
 - `nothing`. Imprime un mensaje de confirmación en consola.
 
+# Notas
+- Esta función admite tanto controladores de 1-GDL como de 2-GDL.
+- El controlador se convierte a espacio de estados para su implementación
+  digital. Se discretiza usando el método bilineal (Tustin) con un periodo
+  de muestreo de 0.02 segundos.
+- Se implementa un mecanismo anti-windup basado en un observador, cuya
+  ganancia se calcula mediante el filtro de Kalman.
+
 # Ejemplos
+## Ejemplo 1: controlador de  un grado de libertad (1-GDL)
+Supongamos que queremos implementar un controlador para el ángulo del **DCMotor** definido por la siguiente función de transferencia:
+
+``C(s)=\\frac{0.1071s + 2.2463}{s + 35.5428}``
+
+Para ello usamos el siguiente código:
+
 ```julia
 using DCMotor, ControlSystems
 sys = MotorSystem();
 s = tf("s");
-C = 2.0 * (s + 1) / s;     # controlador PI de 1 grado de libertad
+C = (0.1071s + 2.2463)/(s + 35.5428);    
 set_controller(sys, C; output=:angle, deadzone=0.2)
 
-    Controlador cargado en Motor
+    "Controlador cargado en DCMotor"
+```
+
+## Ejemplo 2: controlador de dos grados de libertad (2-GDL)
+Supongamos que queremos implementar un controlador de 2-GDL para el ángulo del **DCMotor**, definido por la siguientematriz de transferencia:
+
+``C(s)=\\begin{bmatrix} \\frac{0.0374s + 2.6207}{s + 69.5428} & -\\frac{0.0279s + 2.6207}{s + 69.5428} \\end{bmatrix}``
+
+Para ello usamos el siguiente código:
+
+```julia
+using DCMotor, ControlSystems
+sys = MotorSystem();
+s = tf("s");
+C1 = (0.0374s + 2.6207)/(s + 69.5428)
+C2 = -(0.0279s + 2.6207)/(s + 69.5428)
+C = [C1 C2]
+set_controller(sys, C; output=:angle, deadzone=0.2);
+
+    "Controlador cargado en DCMotor"
 ```
 """
 function set_controller(sys::MotorSystem, controller;

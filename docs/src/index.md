@@ -24,7 +24,7 @@ paquete](@ref). Para el listado completo de funciones, ver el
 panel izquierdo, en la sección **Funciones** (Información, Identificación y
 Control).
 
-## Introducción rápida
+### Introducción rápida
 
 Instale el paquete directamente desde este repositorio, así:
 
