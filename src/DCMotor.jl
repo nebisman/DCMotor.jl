@@ -7,10 +7,11 @@
 module DCMotor
 
 # ── Dependencias externas ────────────────────────────────────────────────────
+using Reexport
 using LibSerialPort
 using JSON3
 using DelimitedFiles
-using ControlSystemsBase
+@reexport using ControlSystemsBase
 using LinearAlgebra
 using Plots
 using Polynomials
@@ -73,6 +74,6 @@ export step_open, prbs_open
 export get_static_model, get_fomodel_step, get_model_prbs
 
 # Funciones de diseño de controladores (control_design)
-export dise_2gdl, dise_1gdl
+export dise_2gdl, dise_1gdl, dise_lqtf
 
 end # module DCMotor

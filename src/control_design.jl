@@ -56,6 +56,11 @@ function dise_2gdl(G, T, m, polosobs)
     N_raw = descvec(numpoly(G)[1, 1])
     n = length(D) - 1  
     
+  
+
+    if m < n-1
+        error("El orden m del controlador debe ser al menos n-1 = $(n-1)")
+    end
     # ─── H = minreal(T / N(s)) ──────────────────────────────────────────
 
     H = minreal(T * tf([1.0], N_raw))
@@ -117,7 +122,7 @@ function dise_2gdl(G, T, m, polosobs)
         M_vec = x[m+2:2m+2]
 
     else
-        error("El orden del controlador m=$m debe ser al menos n-1 = $(n-1)")
+        error("El orden m del controlador debe ser al menos n-1 = $(n-1)")
     end
 
     # ─── Controlador de dos parámetros ──────────────────────────────────
@@ -140,10 +145,7 @@ polos de lazo cerrado al vector `pol`.
 - `pol::Vector`: Polos deseados de lazo cerrado.
 
 # Retorna
-- `K`: Función de transferencia del controlador.
-- `T`: Función de transferencia de lazo cerrado (referencia → salida).
-- `Gur`: Función de transferencia de referencia a control (`u = Gur·r`).
-- `S`: Función de sensibilidad, `S = 1 - T`.
+- `C`: Función de transferencia del controlador.
 """
 function dise_1gdl(P, pol)
 
@@ -168,6 +170,11 @@ function dise_1gdl(P, pol)
     # ─── Orden del controlador y polinomio deseado ─────────────────────
 
     m = length(pol) - n
+
+    if m < n-1
+        error("El orden m del controlador debe ser al menos n-1 = $(n-1)")
+    end
+
     DT = descvec(fromroots(pol))
 
     # ─── Matriz de Sylvester  (n+m+1) × (2m+2) ─────────────────────────
@@ -179,6 +186,7 @@ function dise_1gdl(P, pol)
     end
 
     # ─── Resolución del sistema lineal ──────────────────────────────────
+     
 
     local X::Vector{Float64}, Y::Vector{Float64}
 
@@ -203,15 +211,84 @@ function dise_1gdl(P, pol)
         X = x[m+2:2m+2]
 
     else
-        error("El orden del controlador m=$m debe ser al menos n-1 = $(n-1)")
+        error("El orden m del controlador debe ser al menos n-1 = $(n-1)")
     end
+
+    # ─── Controlador ────────────────────
+
+    C   = tf(X, Y)
+    return C
+end
+
+
+
+
+"""
+    dise_lqtf(P, q)
+
+Calcula, por factorización espectral, un controlador 1-GDL óptimo LQ de
+realimentación unitaria para la planta `P`, con peso `q` sobre la señal de
+control.
+
+# Argumentos
+- `P`: Función de transferencia de la planta.
+- `q::Real`: Peso de la señal de control en el índice cuadrático.
+
+# Retorna
+- `T`: Función de transferencia de lazo cerrado (referencia → salida),
+  normalizada a ganancia estática unitaria.
+- `Gur`: Función de transferencia de referencia a señal de control (`u = Gur·r`).
+"""
+
+
+function dise_lqtf(P, q)
+
+    # -- normalizar la función de transferencia
+
+    P = tf(P)
+
+    # ─── Funciones auxiliares ────────────────────────────────────────────
+
+    """Multiplicación de polinomios en coeficientes descendentes."""
+    function polyconv(a::Vector, b::Vector)
+        c = zeros(promote_type(eltype(a), eltype(b)), length(a) + length(b) - 1)
+        for i in eachindex(a), j in eachindex(b)
+            c[i + j - 1] += a[i] * b[j]
+        end
+        return c
+    end
+
+    """Extrae coeficientes descendentes (grado mayor primero) de un Polinomio."""
+    function descvec(p)
+        return Float64.(reverse(coeffs(p)))
+    end
+
+    """Coeficientes descendentes de p(-s) a partir de los de p(s)."""
+    function cambia_signo(p)
+        signo = ones(length(p))
+        signo[end-1:-2:1] .= -1
+        return signo .* p
+    end
+
+    n = descvec(numpoly(P)[1, 1])
+    d = descvec(denpoly(P)[1, 1])
+
+    # ─── Factorización espectral de Q(s) = D(s)D(-s) + q·N(s)N(-s) ──────
+
+    Qd = polyconv(d, cambia_signo(d))
+    Qn = q * polyconv(n, cambia_signo(n))
+    Qa = [zeros(length(Qd) - length(Qn)); Qn]
+    Q  = Qd .+ Qa
+
+    r = roots(Polynomial(reverse(Q)))
+    estables = r[real.(r) .<= 0]
+    DT = descvec(fromroots(estables))
 
     # ─── Controlador y funciones de lazo cerrado ─────────────────────────
 
-    K   = tf(X, Y)
-    T   = feedback(K * P)
+    T   = tf(n, DT)
+    T   = T / dcgain(T)
     Gur = minreal(T / P)
-    S   = minreal(1 - T)
 
-    return K, T, Gur, S
+    return T, Gur
 end

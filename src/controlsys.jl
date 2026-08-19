@@ -195,7 +195,7 @@ Supongamos que queremos implementar un controlador para el ángulo del **DCMotor
 Para ello usamos el siguiente código:
 
 ```julia
-using DCMotor, ControlSystems
+using DCMotor, ControlSystemsBase
 sys = MotorSystem();
 s = tf("s");
 C = (0.1071s + 2.2463)/(s + 35.5428);    
@@ -212,7 +212,7 @@ Supongamos que queremos implementar un controlador de 2-GDL para el ángulo del 
 Para ello usamos el siguiente código:
 
 ```julia
-using DCMotor, ControlSystems
+using DCMotor, ControlSystemsBase
 sys = MotorSystem();
 s = tf("s");
 C1 = (0.0374s + 2.6207)/(s + 69.5428)

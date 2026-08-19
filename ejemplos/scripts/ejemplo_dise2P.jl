@@ -3,15 +3,19 @@
 import Pkg
 #Pkg.activate(joinpath(@__DIR__, ".."))
 
-using DCMotor
+
 include("ControlUN.jl")
 
 
 # definicion del sistema
-sys = MotorSystem(port="/dev/ttyUSB0");
+sys = MotorSystem();
 
 #funcion de transferencia
-G_ang = transfer_function(sys)
+
+using ControlSystemsBase
+
+
+G_ang, L = transfer_function(sys)
 
 
 # funcion de angulo
@@ -25,9 +29,9 @@ T = (w0^3+2.15*s*w0^2)/(s^3 + 1.75*s^2*w0 + 2.15*s*w0^2 + w0^3)
 ζ = 0.7
 T  = ωn^2/(s^2 + 2*ζ*ωn*s +ωn^2)
 
+G_ang=G/s
 
-
-C2 = dise2p(G_ang, T, 1 ,[-70])
+C2 = dise_2gdl(G_ang, T, 2 ,[-70, -60])
 
 
 using Alert
