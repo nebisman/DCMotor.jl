@@ -51,4 +51,4 @@ set_controller(sys, C2; output=:angle, deadzone=0.2);
 # respuesta del controlador
 result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 0.5, t1 =2); 
 stepinfo_exp(result;T)
-profile_closed(sys; timevalues =[0,1,2,3,4], refvalues=[0,90,180,90, 0])
+profile_closed(sys)

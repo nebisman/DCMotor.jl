@@ -8,7 +8,7 @@ using LinearAlgebra
 using Polynomials
 
 """
-    dise_2gdl(G, T, m, PolosObs)
+    cont2dof(G, T, m, PolosObs)
 
 Calcula un controlador de dos parámetros.
 
@@ -23,7 +23,7 @@ Calcula un controlador de dos parámetros.
 
 La señal de control es:  u = (L/A)·r − (M/A)·y
 """
-function dise_2gdl(G, T, m, polosobs)
+function cont2dof(G, T, m, polosobs=[])
     
     # -- normalizar las funciones de transferencia
 
@@ -135,23 +135,23 @@ end
 
 
 """
-    dise_1gdl(P, pol)
+    cont1dof(G, pol)
 
 Calcula un controlador 1-GDL de realimentación unitaria que asigna los
 polos de lazo cerrado al vector `pol`.
 
 # Argumentos
-- `P`: Función de transferencia de la planta.
+- `G`: Función de transferencia de la planta.
 - `pol::Vector`: Polos deseados de lazo cerrado.
 
 # Retorna
 - `C`: Función de transferencia del controlador.
 """
-function dise_1gdl(P, pol)
+function cont1dof(G, pol)
 
     # -- normalizar la función de transferencia
 
-    P = tf(P)
+    G = tf(G)
 
     # ─── Función auxiliar ────────────────────────────────────────────────
 
@@ -160,8 +160,8 @@ function dise_1gdl(P, pol)
         return Float64.(reverse(coeffs(p)))
     end
 
-    D = descvec(denpoly(P)[1, 1])
-    N_raw = descvec(numpoly(P)[1, 1])
+    D = descvec(denpoly(G)[1, 1])
+    N_raw = descvec(numpoly(G)[1, 1])
     n = length(D) - 1
 
     # Rellenar N con ceros a la izquierda (como hace tfdata de MATLAB)
@@ -224,14 +224,14 @@ end
 
 
 """
-    dise_lqtf(P, q)
+    lqmodel(G, q)
 
 Calcula, por factorización espectral, un controlador 1-GDL óptimo LQ de
-realimentación unitaria para la planta `P`, con peso `q` sobre la señal de
+realimentación unitaria para la planta `G`, con peso `q` sobre la señal de
 control.
 
 # Argumentos
-- `P`: Función de transferencia de la planta.
+- `G`: Función de transferencia de la planta.
 - `q::Real`: Peso de la señal de control en el índice cuadrático.
 
 # Retorna
@@ -239,13 +239,11 @@ control.
   normalizada a ganancia estática unitaria.
 - `Gur`: Función de transferencia de referencia a señal de control (`u = Gur·r`).
 """
-
-
-function dise_lqtf(P, q)
+function lqmodel(G, q)
 
     # -- normalizar la función de transferencia
 
-    P = tf(P)
+    G = tf(G)
 
     # ─── Funciones auxiliares ────────────────────────────────────────────
 
@@ -270,8 +268,8 @@ function dise_lqtf(P, q)
         return signo .* p
     end
 
-    n = descvec(numpoly(P)[1, 1])
-    d = descvec(denpoly(P)[1, 1])
+    n = descvec(numpoly(G)[1, 1])
+    d = descvec(denpoly(G)[1, 1])
 
     # ─── Factorización espectral de Q(s) = D(s)D(-s) + q·N(s)N(-s) ──────
 
@@ -288,7 +286,7 @@ function dise_lqtf(P, q)
 
     T   = tf(n, DT)
     T   = T / dcgain(T)
-    Gur = minreal(T / P)
+    Gur = minreal(T / G)
 
     return T, Gur
 end

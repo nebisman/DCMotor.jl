@@ -2,8 +2,8 @@
 CurrentModule = DCMotor
 ```
 
-# `get_fomodel_step`
+# `get_model_step`
 
 ```@docs
-get_fomodel_step
+get_model_step
 ```

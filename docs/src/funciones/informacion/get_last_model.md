@@ -2,8 +2,8 @@
 CurrentModule = DCMotor
 ```
 
-# `transfer_function`
+# `get_last_model`
 
 ```@docs
-transfer_function
+get_last_model
 ```

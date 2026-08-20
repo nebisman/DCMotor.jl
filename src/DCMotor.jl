@@ -63,7 +63,7 @@ export redraw!, screen_pluto, entorno
 export send_command!, receive_frames!
 
 # Modelos de la planta
-export transfer_function, speed_from_volts, volts_from_speed
+export get_last_model, speed_from_volts, volts_from_speed
 
 # Funciones de control (controlsys)
 export set_reference, set_pid, set_controller
@@ -71,9 +71,9 @@ export step_closed, stairs_closed, profile_closed, stepinfo_exp
 
 # Funciones de identificación (identsys)
 export step_open, prbs_open
-export get_static_model, get_fomodel_step, get_model_prbs
+export get_static_model, get_model_step, get_model_prbs
 
 # Funciones de diseño de controladores (control_design)
-export dise_2gdl, dise_1gdl, dise_lqtf
+export cont2dof, cont1dof, lqmodel
 
 end # module DCMotor

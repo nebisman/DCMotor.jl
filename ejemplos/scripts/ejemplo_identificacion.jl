@@ -17,7 +17,7 @@ using Plots
 
 # ── 1. Crear el sistema ─────────────────────────────────────────────
 sys = MotorSystem();
-
+using Revise
 
 # ── 2. Curva estática ───────────────────────────────────────────────
 ## Barre todos los voltajes y mide la velocidad estacionaria.

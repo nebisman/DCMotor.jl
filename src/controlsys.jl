@@ -104,7 +104,7 @@ sys = MotorSystem();
 Luego, el controlador PID se programa así:
 
 ```julia
-set_pid(sys; kp=0.2, ki=1.0, kd=0.0082, N=10.0, beta=0.0, output=:angle, deadzone=0.15)
+, N=10.0, beta=0.0, output=:angle, deadzone=0.15)
 
     "PID actualizado: kp=0.2  ki=1.0  kd=0.0082  N=10.0  β=0.0"
 ```
@@ -195,7 +195,7 @@ Supongamos que queremos implementar un controlador para el ángulo del **DCMotor
 Para ello usamos el siguiente código:
 
 ```julia
-using DCMotor, ControlSystemsBase
+using DCMotor
 sys = MotorSystem();
 s = tf("s");
 C = (0.1071s + 2.2463)/(s + 35.5428);    
@@ -212,7 +212,7 @@ Supongamos que queremos implementar un controlador de 2-GDL para el ángulo del 
 Para ello usamos el siguiente código:
 
 ```julia
-using DCMotor, ControlSystemsBase
+using DCMotor
 sys = MotorSystem();
 s = tf("s");
 C1 = (0.0374s + 2.6207)/(s + 69.5428)
@@ -285,34 +285,53 @@ end
 """
     step_closed(sys::MotorSystem; r0=0, r1=100, t0=0.0, t1=1.0)
 
-Ejecuta un experimento de respuesta al escalón en lazo cerrado: la
-referencia permanece en `r0` durante `t0` segundos y luego salta a `r1`
-durante `t1` segundos, mientras el controlador previamente cargado (con
-[`set_pid`](@ref) o [`set_controller`](@ref)) actúa sobre la planta. Los
-datos se grafican en tiempo real a medida que llegan del ESP32 y, al
-finalizar, se guardan en `datafiles/DCmotor_step_closed_exp.csv` y la
-referencia se vuelve a fijar en `0`.
+Ejecuta un experimento de respuesta al escalón en lazo cerrado sobre la
+plataforma DCMotor. El controlador que actúa sobre la plataforma ha sido previamente cargado con
+[`set_pid`](@ref) o [`set_controller`](@ref). 
+
+La referencia inicia en un valor inicial `r0` y
+pasa a un valor final `r1`. La duración de cada nivel de referencia está
+definida por los tiempos `t0` y `t1`, respectivamentem, como muestra la figura siguiente. 
+
+![Respuesta al escalón en lazo cerrado de la plataforma DCMotor](../../assets/step_closed.png)
+
+Los parámetros de la figura se describen a continuación.
 
 # Argumentos
-- `sys::MotorSystem`: objeto de la plataforma, previamente configurado con
-  un controlador.
+- `sys::MotorSystem`: objeto que representa la plataforma DCMotor, con un controlador previamente
+cargado.
 
 # Argumentos de palabra clave
-- `r0::Real=0`: valor inicial (bajo) de la referencia.
-- `r1::Real=100`: valor final (alto) de la referencia, tras el escalón.
-- `t0::Real=0.0`: duración en segundos con la referencia en `r0`.
-- `t1::Real=1.0`: duración en segundos con la referencia en `r1`.
+- `r0::Real=0`: valor inicial de la referencia.
+- `r1::Real=100`: valor final de la referencia, tras el escalón.
+- `t0::Real=0.0`: duración en segundos de la referencia en el valor `r0`.
+- `t1::Real=1.0`: duración en segundos de la referencia en el valor `r1`.
 
 # Retorna
-- `(t, r, y, u)`: tupla de vectores `Vector{Float64}` con el tiempo (s), la
-  referencia, la salida medida (ángulo o velocidad, según el controlador
-  cargado) y la señal de control (voltios), respectivamente.
+- `(t, r, y, u)`: tupla de vectores `Vector{Float64}` con el tiempo [s], la
+  referencia, la salida (ángulo o velocidad, según el controlador
+  cargado) y la señal de control (en voltios), respectivamente.
+
+# Notas
+- La función genera una gráfica para visualizar la respuesta al escalón en
+  tiempo real, mostrando la salida y la señal de control durante el
+  experimento.
+- Los datos del experimento se guardan en un archivo CSV en 
+  `datafiles/DCmotor_step_closed_exp.csv` presente en el directorio de trabajo.
 
 # Ejemplos
+Primero, asegúrese de haber importado el paquete DCMotor, de haber
+definido el sistema y de haber cargado un controlador, así:
+
 ```julia
 using DCMotor
-sys = MotorSystem();
-set_pid(sys; kp=2.0, ki=0.5, output=:angle);
+sys = MotorSystem()
+set_pid(sys; kp=0.2, ki=1.0, kd=0.0082)
+```
+
+Luego, obtenga el experimento de respuesta al escalón en lazo cerrado, así:
+
+```julia
 t, r, y, u = step_closed(sys; r0=0, r1=180, t0=0.5, t1=2.0);
 ```
 """
@@ -433,7 +452,7 @@ t, r, y, u = stairs_closed(sys; stairs=(90, 180, 270, 90), duration=2.0);
 ```
 """
 function stairs_closed(sys::MotorSystem;
-                       stairs = (90, 180, 270),
+                       stairs = [90, 180, 270],
                        duration::Real = 1.5)
     h  = SAMPLING_TIME
     bs = BUFFER_SIZE
@@ -509,41 +528,63 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    profile_closed(sys::MotorSystem; timevalues=(0,1,2,3), refvalues=(0,360,360,0))
+    profile_closed(sys; timevalues =[0, 1, 2, 3, 4], refvalues=[0, 90, 180, 90, 0])
 
-Ejecuta en lazo cerrado un perfil de referencia arbitrario, definido por
-pares `(timevalues[i], refvalues[i])` que el firmware interpola linealmente
-entre los puntos indicados, mientras el controlador previamente cargado (con
-[`set_pid`](@ref) o [`set_controller`](@ref)) actúa sobre la planta. Los
-datos se grafican en tiempo real y, al finalizar, se guardan en
-`datafiles/DCmotor_profile_closed_exp.csv` y la referencia se vuelve a fijar
-en `0`.
+Ejecuta en lazo cerrado un perfil de referencia arbitrario sobre la
+plataforma DCMotor. La señal de referencia se define como una serie de
+puntos ``(t_i, r_i)``, donde cada punto especifica un
+instante de tiempo y su valor de referencia correspondiente.
+
+El controlador que actúa sobre la plataforma en este experimento ha sido previamente cargado con
+[`set_pid`](@ref) o [`set_controller`](@ref). 
+
+
+La siguiente figura ilustra cómo se define un perfil de referencia para
+esta función:
+
+![Perfil de referencia definido por puntos para profile_closed](../../assets/profile_response.png)
+
+A continuación se describen los parámetros mostrados en la figura anterior:
 
 # Argumentos
-- `sys::MotorSystem`: objeto de la plataforma, previamente configurado con
-  un controlador.
+- `sys::MotorSystem`: objeto que representa la plataforma.
 
 # Argumentos de palabra clave
-- `timevalues`: colección con los instantes de tiempo (en segundos,
-  crecientes, idealmente comenzando en `0`) que definen el perfil.
-- `refvalues`: colección, del mismo largo que `timevalues`, con los valores
+- `timevalues`: colección con los instantes de tiempo (con valores crecients
+  en segundos) que definen el perfil. El primer punto de `timevalues` debe ser `0`.
+- `refvalues`: colección, de la misma longitud que `timevalues`, con los valores
   de referencia en cada instante.
 
 # Retorna
-- `(t, r, y, u)`: tupla de vectores `Vector{Float64}` con el tiempo (s), la
-  referencia interpolada, la salida medida y la señal de control (voltios).
+- `(t, r, y, u)`: tupla de vectores con el tiempo (s), la
+  referencia interpolada, la salida medida y la señal de control (en voltios).
 
-# Ejemplos
+# Notas
+- Se genera una gráfica para visualizar la respuesta al perfil de referencia en tiempo
+  real, mostrando la salida y la señal de control durante el experimento.
+- Los datos del experimento se guardan en un archivo CSV en 
+  `datafiles/DCmotor_profile_closed_exp.csv` que está presente en el directorio de trabajo.
+  
+
+# Ejemplo
+Primero, asegúrese de haber importado el paquete DCMotor, de haber
+definido el sistema y de haber cargado un controlador, así:
+
 ```julia
 using DCMotor
 sys = MotorSystem();
-set_pid(sys; kp=2.0, ki=0.5, output=:angle);
-t, r, y, u = profile_closed(sys; timevalues=(0, 1, 2, 3), refvalues=(0, 360, 360, 0));
+set_pid(sys; kp=0.2, ki=1.0, kd=0.0082)
+```
+
+Luego, ejecute el experimento de obtención de la respuesta en lazo cerrado a un perfil de referencia, así:
+
+```julia
+profile_closed(sys; timevalues =[0, 1, 2, 3, 4], refvalues=[0, 90, 180, 90, 0])
 ```
 """
 function profile_closed(sys::MotorSystem;
-                        timevalues = (0, 1, 2, 3),
-                        refvalues  = (0, 360, 360, 0))
+                        timevalues = [0, 1, 2, 3],
+                        refvalues  = [0, 360, 360, 0])
     h  = SAMPLING_TIME
     bs = BUFFER_SIZE
     tv_cmd = collect(Float64, timevalues)

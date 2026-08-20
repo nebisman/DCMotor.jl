@@ -456,11 +456,11 @@ end
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  get_fomodel_step  (modelo de primer orden desde step)
+#  get_model_step  (modelo de primer orden desde step)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    get_fomodel_step(sys::MotorSystem; yop=400, sigma=100, usefile=false)
+    get_model_step(sys::MotorSystem; yop=400, sigma=100, usefile=false)
 
 Estima un modelo de primer orden con retardo (FOTD, *First Order plus Time
 Delay*) de la velocidad angular del motor DC, linealizado alrededor de un
@@ -502,10 +502,10 @@ archivo de parámetros y se retorna aparte).
 ```julia
 using DCMotor
 sys = MotorSystem();
-G, L = get_fomodel_step(sys; yop=300, sigma=80);
+G, L = get_model_step(sys; yop=300, sigma=80);
 ```
 """
-function get_fomodel_step(sys::MotorSystem;
+function get_model_step(sys::MotorSystem;
                           yop::Real = 400, sigma::Real = 100, usefile::Bool = false)
 
     ymax = speed_from_volts(sys, 5)
@@ -623,7 +623,7 @@ end
 Estima un modelo de primer orden de la velocidad angular del motor DC a
 partir de un experimento de identificación con señal PRBS, linealizado
 alrededor de un punto de operación `yop` (en °/s). Calcula los voltajes
-`low_val`/`high_val` de la misma forma que [`get_fomodel_step`](@ref),
+`low_val`/`high_val` de la misma forma que [`get_model_step`](@ref),
 ejecuta (o reutiliza, si `usefile=true`) un experimento con
 [`prbs_open`](@ref) (`divider=4`), remueve las medias de entrada y salida, y
 ajusta un modelo ARX discreto de orden (1,1) con retardo de entrada de una
@@ -698,12 +698,13 @@ function get_model_prbs(sys::MotorSystem;
     na, nb = 1, 1 
     data = iddata(ym, um, SAMPLING_TIME)
     data = prefilter(data,0, 12.5)  # Eliminar tendencia constante
+     
     Gh = arx(data, na, nb, inputdelay=1, estimator = wtls_estimator(data.y, na, nb)) 
     G1 = d2c(Gh)
     u_matrix = reshape(um, 1, :)
     res = lsim(G1, u_matrix, t)
     ysim =  vec(res.y)
-    r1 = modelfit(ym, ysim)
+    r1 = modelfit(data.y', ysim)
    
 
 

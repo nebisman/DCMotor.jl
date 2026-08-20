@@ -464,10 +464,10 @@ end
 # ── Modelos de la planta ─────────────────────────────────────────────────────
 
 """
-    transfer_function(sys::MotorSystem, output::Symbol=:angle)
+    get_last_model(sys::MotorSystem, output::Symbol=:angle)
 
 Retorna la función de transferencia nominal del motor DC, estimada
-previamente con [`get_fomodel_step`](@ref) o [`get_model_prbs`](@ref) y
+previamente con [`get_model_step`](@ref) o [`get_model_prbs`](@ref) y
 almacenada en `datafiles/DCmotor_fo_model.csv`.
 
 El modelo identificado es de primer orden con retardo, `b/(s+a)` con retardo
@@ -492,11 +492,11 @@ función de transferencia retornada es:
 # Ejemplos
 ```julia
 sys = MotorSystem();
-G_speed, L = transfer_function(sys, :speed)
-G_angle, L = transfer_function(sys, :angle)   # incluye el integrador
+G_speed, L = get_last_model(sys, :speed)
+G_angle, L = get_last_model(sys, :angle)   # incluye el integrador
 ```
 """
-function transfer_function(sys::MotorSystem,
+function get_last_model(sys::MotorSystem,
                            output::Symbol = :angle)
     
     b, a, L = read_model(_datafile("DCmotor_fo_model.csv"))
