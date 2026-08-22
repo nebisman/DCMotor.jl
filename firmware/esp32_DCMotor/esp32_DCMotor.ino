@@ -122,9 +122,17 @@ static void speedControlPidTask(void *pvParameters) {
             if (codeTopic==USER_SYS_STAIRS_CLOSED_INT || codeTopic==USER_SYS_PROFILE_CLOSED_INT){
                  vTaskDelay(DELAY_STAIRS);
              }
+
+            /** updating controller parameters if they changed */
+            // integral action scaled to sampling time
+            bi = ki*h;
+            // filtered derivative constant
+            ad = kd/(N*(kd/N + h));
+            bd = kd/(kd/N + h);
+
+            // resetting state
             np = 0;
-            encoderPot.setCount(0);
-      
+            encoderPot.setCount(0);      
             reset_int = false;
             y_ant = 0;
             I = 0;
@@ -139,12 +147,7 @@ static void speedControlPidTask(void *pvParameters) {
         computeReference();
         // updating error
 
-        /** updating controller parameters if they changed */
-        // integral action scaled to sampling time
-        bi = ki*h;
-        // filtered derivative constant
-        ad = kd/(N*(kd/N + h));
-        bd = kd/(kd/N + h);
+
         P = kp*(beta * reference - y); // proportional actions
         D =  ad*D - bd*(y - y_ant); // derivative action
         u = P + I + D ; // control signal
@@ -190,6 +193,12 @@ static void controlPidTask(void *pvParameters) {
     float e;
     float v;
 
+    // integral action scaled to sampling time
+    bi = ki*h;
+    // filtered derivative constant
+    ad = kd/(N*(kd/N + h));
+    bd = kd/(kd/N + h);
+
     for (;;) {
         TickType_t xLastWakeTime = xTaskGetTickCount();
         // at start we reset the integral action and the state variables
@@ -198,6 +207,14 @@ static void controlPidTask(void *pvParameters) {
              if (codeTopic==USER_SYS_STAIRS_CLOSED_INT || codeTopic==USER_SYS_PROFILE_CLOSED_INT){
                  vTaskDelay(DELAY_STAIRS);             
             }
+
+            /** updating controller parameters if they changed */
+        
+            // integral action scaled to sampling time
+            bi = ki*h;
+            // filtered derivative constant
+            ad = kd/(N*(kd/N + h));
+            bd = kd/(kd/N + h);
             I = 0;
             np = 0;
             encoderMotor.clearCount();
@@ -209,13 +226,7 @@ static void controlPidTask(void *pvParameters) {
         y = encoderMotor.getCount() * pulses2degrees;
         // computing the current reference depending on the current command
         computeReference();
-        /** updating controller parameters if they changed */
-        
-        // integral action scaled to sampling time
-        bi = ki*h;
-        // filtered derivative constant
-        ad = kd/(N*(kd/N + h));
-        bd = kd/(kd/N + h);
+
         P = kp*(beta * reference - y); // proportional actions
         D =  ad*D - bd*(y - y_ant); // derivative action
         u = P + I +  D ; // control signal
@@ -585,7 +596,7 @@ void setup() {
             CORE_COMM
     );
     
-    vTaskDelay(100);
+    vTaskSuspend(h_publishStateTask);
     // This is a task for the minimal UI of the board
     xTaskCreatePinnedToCore(
         buttonTask, // nombre de la rutina

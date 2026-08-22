@@ -491,8 +491,6 @@ void  onCommandReceived(char* lastTopic, byte* lastPayload) {
                "    Dead Zone=%0.3f\n", kp, ki, kd, N, beta, deadzone);
         printf("control code: %d\n", typeControl);
         #endif
-
-        reset_int = true;
         defaultControl();
     }
     else if(strstr(lastTopic, USER_SYS_SET_GENCON)){
