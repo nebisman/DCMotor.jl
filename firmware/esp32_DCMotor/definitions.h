@@ -168,16 +168,18 @@ TaskHandle_t h_buttonTask;
 TaskHandle_t h_serialCommandTask;  // handle used by the UART ISR to wake the command task
 
 // PID control default parameters
-float kp = 0.21646846;
-float ki = 1.8122941;
-float kd  =0.0042447215;
-float N = 10;
-float beta = 0;
-
+float p0 = 0.0; 
+float p1 = 0.2164;
+float p2 = 0.4239;
+float p3 = 0.02075;
+float p4 = 0.2032;
+float p5 = 0.036244;
+float kp = 0.2164;
+float beta = 1; 
+const float p6 = 1/0.99;
 
 float h = SAMPLING_TIME; //sampling time
 float deadzone = DEAD_ZONE;
-const float br = 1/0.99;
 bool reset_int = false;
 
 
@@ -481,11 +483,14 @@ void  onCommandReceived(char* lastTopic, byte* lastPayload) {
     JsonDocument doc;
     if (strstr(lastTopic, USER_SYS_SET_PID)) {
         deserializeJson(doc, lastPayload);
-        kp = hex2Float((const char *) doc["kp"]);
-        ki = hex2Float((const char *) doc["ki"]);
-        kd = hex2Float((const char *) doc["kd"]);
-        N = hex2Float((const char *) doc["N"]);
+        p0 = hex2Float((const char *) doc["p0"]);
+        p1 = hex2Float((const char *) doc["p1"]);
+        p2 = hex2Float((const char *) doc["p2"]);
+        p3 = hex2Float((const char *) doc["p3"]);
+        p4 = hex2Float((const char *) doc["p4"]);
+        p5 = hex2Float((const char *) doc["p5"]);
         beta = hex2Float((const char *) doc["beta"]);
+        kp = hex2Float((const char *) doc["kp"]);
         typeControl = hex2Long((const char *) doc["typeControl"]);     
         deadzone =  hex2Float((const char *) doc["deadzone"]);
 

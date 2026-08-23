@@ -29,6 +29,7 @@ G, L = get_model_prbs(sys; yop=360,sigma=100)
 
 # parametros del sistema
 using ControlSystems
+G= tf(sys,:speed)
 a = denvec(G)[1][2]
 b = numvec(G)[1][1]
 
@@ -49,19 +50,20 @@ tr = 0.2
 
 
 using ControlSystems
+
 ωn=15
 ζ = 0.7
 # calculo de las constantes
 Kp = (2*ζ*ωn-a)/b
 Ki = ωn^2/b
 
+s=tf("s")
 Gd=G#*delay(0.01)
 G1  = feedback(Gd,Kp)
 T= feedback(G1*Ki/s,1)
-set_pid(sys;  kp=Kp, ki=Ki, kd=0, beta=0, output=:speed, deadzone=0)
-result = step_closed(sys; r0 = 00, r1 =400,  t0 = 1.5, t1 =2); 
-stepinfo(result, T)# %% iteraciones
-
+set_pid(sys;  kp=Kp, ki=Ki, kd=0, beta=0, output=:speed, deadzone=0.2)
+result = step_closed(sys; r0 = 00, r1 =400,  t0 = 1.5, t1 =2);
+stepinfo(result,T)
 # calculo de las constantes
 set_reference(sys, 5)
 

@@ -115,12 +115,24 @@ function set_pid(sys::MotorSystem;
                   output::Symbol = :angle, deadzone::Real = get_deadzone())
     type_map = Dict(:angle => 0, :speed => 1)
     haskey(type_map, output) || error("output debe ser :angle o :speed")
+    
+    h = SAMPLING_TIME
+    
+    p0 = 0.0
+    p1 = kp * beta
+    p2 = kp + kd/(kd/N + h)
+    p3 = kd / (N*(kd/N + h))
+    p4 = kd*h / (kd/N + h)^2
+    p5 = ki * h
 
-    payload = Dict(
+    payload = Dict(     
+        "p0"          => float2hex(p0),  
+        "p1"          => float2hex(p1),
+        "p2"          => float2hex(p2),
+        "p3"          => float2hex(p3),
+        "p4"          => float2hex(p4),
+        "p5"          => float2hex(p5),
         "kp"          => float2hex(kp),
-        "ki"          => float2hex(ki),
-        "kd"          => float2hex(kd),
-        "N"           => float2hex(N),
         "beta"        => float2hex(beta),
         "typeControl" => long2hex(type_map[output]),
         "deadzone"    => float2hex(deadzone),
