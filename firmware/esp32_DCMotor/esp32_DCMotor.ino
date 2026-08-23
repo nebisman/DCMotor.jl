@@ -234,7 +234,7 @@ static void controlPidTask(void *pvParameters) {
         v = (y - y_ant)/h;
 
         // for the default control we allow to relax the system with zero control signal
-        if ((codeTopic == DEFAULT_TOPIC ) & (abs(e) <= 0.5) & (abs(v) <= 20)){
+        if ((codeTopic == DEFAULT_TOPIC ) & (abs(e) <= 0.25) & (abs(v) <= 10)){
             u=0;
              }
 
@@ -311,9 +311,11 @@ float computeController(float limit, bool type){
             X[i] = Xnew[i];
         }
         v = (y - y_ant) / h;
-        if ((abs(e) <= 0.23) & abs(v) <= 10){
-            control = 0;
-        }
+
+        if ((abs(e) <= 0.25) & (abs(v) <= 10) ){
+                control = 0;
+            }
+     
 
         y_ant = y;
         control = constrain(control, -limit,  limit);

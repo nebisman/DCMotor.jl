@@ -2,7 +2,7 @@
 
 ```@raw html
 <div style="font-size: 1em; font-weight: bold; color: rgba(202, 60, 50, 1); background-color: #e9ddaf; border: 4px solid rgba(202, 60, 50, 1); border-radius: 8px; padding: 1em; margin: 1em 0;">
-⚠️ La carga de firmware solo es necesaria si la placa está desconfigurada y el controlador por defecto no funciona. En el caso en que el firmware esté desactualizado, la plataforma transmitirá un mensaje indicando que debe hacerse una actualización de firmware al cargar el paquete <code>UNDCMotor</code>.
+⚠️ La carga de firmware solo es necesaria si la placa está desconfigurada y el controlador por defecto no funciona. También en el caso en que el firmware esté desactualizado. <code>UNDCMotor</code>.
 </div>
 ```
 # Instalación del Firmware
@@ -44,7 +44,9 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 Igual que en Linux, si la placa está conectada por USB el script
 detecta el puerto (`COMx`) y graba el firmware automáticamente; si no
 detecta ningún puerto compatible, o detecta más de uno, se detiene con
-un mensaje de error indicando cómo proceder.
+un mensaje de error indicando cómo proceder. Si no se detecta ningún
+puerto, lo más probable es que falte instalar el driver del chip
+USB-serial de la placa (ver [Instalación del driver CH340 en Windows](@ref)).
 
 ## Instalación desde el código fuente en Linux
 
@@ -62,7 +64,7 @@ la gran mayoría de las distribuciones). Además, el usuario debe
 pertenecer al grupo `dialout` para tener permisos sobre el puerto serial
 (ver [Permisos del puerto serial en Linux](@ref)).
 
-**Note que el proceso demora porque debe descargarse la libreria completa de programación del ESP32, la cual es muy estensa. Después de instalada por primera vez, el proceso es muy rápido.**
+**Note que el proceso demora porque debe descargarse la libreria completa de programación del ESP32, la cual es muy extensa. Después de instalada por primera vez, el proceso es muy rápido.**
 
 
 Descargue y ejecute  el script de instalación desde la
@@ -82,7 +84,7 @@ descarga el código fuente del firmware, lo compila y lo graba en la
 placa. Requiere PowerShell 5.1 (incluido en Windows 10/11) o
 PowerShell 7, y [Git para Windows](https://git-scm.com/download/win).
 
-**Note que el proceso demora porque debe descargarse la libreria completa de programación del ESP32, la cual es muy estensa. Después de instalada por primera vez, el proceso es muy rápido.**
+**Note que el proceso demora porque debe descargarse la libreria completa de programación del ESP32, la cual es muy extensa. Después de instalada por primera vez, el proceso es muy rápido.**
 
 Abra PowerShell y ejecute:
 

@@ -8,7 +8,7 @@ using JSON3
 using DelimitedFiles
 using Printf
 using Statistics
-using ControlSystemsBase
+import ControlSystemsBase: tf, ss, numvec, denvec
 
 # ── Constantes del protocolo ─────────────────────────────────────────────────
 
@@ -152,7 +152,7 @@ end
     MotorSystem(; port=find_port(), bauds=460800)
 
 Objeto que representa la interfaz entre Julia y la plataforma
-DCMotor (con base en un microcontrolador ESP32). Todas las funciones de comunicación, control e
+DCMotor (basada en un microcontrolador ESP32). Todas las funciones de comunicación, control e
 identificación del paquete reciben una instancia de `MotorSystem` como primer
 argumento.
 
@@ -161,15 +161,17 @@ argumento.
 - `port::String=find_port()`: nombre del puerto serial al que está
   conectada la placa ESP32 (por ejemplo: `"/dev/ttyUSB0"` en Linux, o  `"COM3"`
   en Windows). Por defecto se detecta automáticamente con [`find_port`](@ref);
-  indíquelo manualmente si hay varias placas conectadas o si la detección falla.
-- `bauds::Int=460800`: velocidad de transmisión (baudios) del puerto serial;
-  debe coincidir con la configurada en el firmware. Deje este valor por defecto a menos que se haya tenido que modificar en el firmware.
+  *solo indíquelo manualmente si hay varias placas conectadas o si la detección falló*.
+
+   - `bauds::Int=460800`: velocidad de transmisión (baudios) del puerto serial;
+  debe coincidir con la configurada en el firmware. Deje este valor por defecto
+  a menos que se haya tenido que modificar la velocidad en el firmware.
 
 # Ejemplo
 ```julia
 sys = MotorSystem();
 set_pid(sys;  kp=0.1886, ki=1, kd=0.0069)
-step_closed(sys)
+set_reference(sys,180)
 ```
 """
 mutable struct MotorSystem
@@ -205,11 +207,10 @@ end
 """
     find_port()
 
-Detecta automáticamente el puerto serial al cual está conectada la placa
-ESP32 de la plataforma DCMotor. Recorre los puertos USB-serial visibles en
-el sistema y selecciona aquellos cuyo identificador de fabricante/producto
-(VID/PID) o descripción corresponden a los conversores USB-serial usuales en
-placas ESP32 (CP210x, CH340/CH9102, FTDI, o el USB nativo de Espressif).
+Detecta automáticamente el puerto serial al cual está conectada la plataforma DCMotor. 
+
+Recorre los puertos USB-serial visibles en sistema y selecciona aquellos compatibles
+con la placa ESP32 en que está basada la plataforma DCMotor.
 
 # Retorna
 - `String`: nombre del puerto serial detectado (por ejemplo, `"/dev/ttyUSB0"`
@@ -219,7 +220,7 @@ placas ESP32 (CP210x, CH340/CH9102, FTDI, o el USB nativo de Espressif).
 - `ErrorException` si no se encuentra ningún puerto candidato, o si se
   encuentra más de uno y no es posible determinar cuál corresponde a la
   placa. En ambos casos, debe indicar el puerto manualmente con
-  `MotorSystem(port="...")` o revisar la conexión.
+  `MotorSystem(port="...")` o revisar si la placa está conectada.
 
 # Ejemplos
 ```julia
@@ -275,8 +276,8 @@ function find_port()
 
     if isempty(candidates) 
         error(
-        "No se encontró ningún puerto USB-serial compatible con la placa " *
-        "ESP32. Verifique que la plataforma esté conectada y encendida, o " *
+        "No se encontró ningún puerto USB-serial compatible con la plataforma" *
+        " DCMotor. Verifique que la plataforma esté conectada, o " *
         "indique el puerto manualmente con MotorSystem(port=\"...\").")
     return nothing
     elseif length(candidates) > 1
@@ -466,34 +467,32 @@ end
 """
     get_last_model(sys::MotorSystem, output::Symbol=:angle)
 
-Retorna la función de transferencia nominal del motor DC, estimada
-previamente con [`get_model_step`](@ref) o [`get_model_prbs`](@ref) y
-almacenada en `datafiles/DCmotor_fo_model.csv`.
+Retorna la función de transferencia y el retardo de la plataforma DCMotor, estimados
+previamente con [`get_model_step`](@ref) o [`get_model_prbs`](@ref).
 
-El modelo identificado es de primer orden con retardo, `b/(s+a)` con retardo
-`L`, con ganancia `b`, polo en `-a` y retardo `L` (en segundos, no incluido
-en la función de transferencia retornada). Según el valor de `output`, la
-función de transferencia retornada es:
-- `:angle` → `b / (s*(s+a))` (se agrega un integrador: de velocidad a
-  posición angular).
-- `:speed` → `b / (s+a)` (modelo directo de la velocidad angular).
 
 # Argumentos
 - `sys::MotorSystem`: objeto de la plataforma (no necesita estar conectado;
   solo se usa para ubicar el archivo del modelo).
-- `output::Symbol=:angle`: variable de salida del modelo, `:angle` (ángulo,
-  en grados) o `:speed` (velocidad angular, en grados/s).
+- `output::Symbol=:angle`: variable de salida del modelo. Según el valor de `output`, la
+  función de transferencia retornada puede ser:
+  
+  + `:speed` → ``G=\\frac{b}{s+a}`` (modelo con salida de velocidad angular).
+  + `:angle` → ``G=\\frac{b}{s(s+a)}`` (se agrega un integrador para obtener un modelo 
+  con salida de posición angular).
+
 
 # Retorna
 - `G::ControlSystems.TransferFunction`: función de transferencia continua
-  del motor DC para la salida solicitada.
-- `L::Float64`: retardo estimado, en segundos.
+  del motor DC para la salida requerida (ángulo o velocidad).
+- `L::Float64`: retardo estimado, en segundos. Si el modelo se obtuvo con PRBS el retardo
+es de una muestra (0.02s).
 
 # Ejemplos
 ```julia
 sys = MotorSystem();
-G_speed, L = get_last_model(sys, :speed)
-G_angle, L = get_last_model(sys, :angle)   # incluye el integrador
+G_angle = tf(sys)                 # modelo nominal con salida de  ángulo (por defecto)
+G_speed = tf(sys, :speed)         # modelo nominal con salida de velocidad angular
 ```
 """
 function get_last_model(sys::MotorSystem,
@@ -517,27 +516,131 @@ function get_last_model(sys::MotorSystem,
     return G, L
 end
 
+
+"""
+    tf(sys::MotorSystem, output::Symbol=:angle)
+
+Retorna la función de transferencia nominal (sin retardo) de la plataforma DCMotor, estimada
+previamente estimada con [`get_model_step`](@ref) o [`get_model_prbs`](@ref).
+
+
+# Argumentos
+- `sys::MotorSystem`: objeto que representa la plataforma.
+  
+- `output::Symbol=:angle`: variable de salida del modelo. Según el valor de `output`, la
+  función de transferencia retornada puede ser:
+  
+  + `:speed` → ``G=\\frac{b}{s+a}``  → Modelo con salida de velocidad angular.
+  + `:angle` → ``G=\\frac{b}{s(s+a)}`` → se agrega un integrador para obtener un modelo con salida de posición angular).
+
+# Retorna
+- `G::ControlSystemsBase.TransferFunction`: función de transferencia
+   de la plataforma MotorDC para la salida requerida, sin incluir retardo.
+
+# Ejemplos
+```julia
+sys = MotorSystem();
+G_angle = tf(sys)                 # modelo nominal con salida de  ángulo (por defecto)
+G_speed = tf(sys, :speed)         # modelo nominal con salida de velocidad angular
+```
+"""
+function tf(sys::MotorSystem, output::Symbol = :angle)
+    G, _ = get_last_model(sys, output)
+    return G
+end
+
+
+
+"""
+    ss(sys::MotorSystem, output::Symbol=:angle)
+
+Retorna la realización en espacio de estado del modelo nominal (sin retardo)
+de la plataforma DCMotor. 
+
+# Argumentos
+- `sys::MotorSystem`: objeto que representa la plataforma.
+
+- `output::Symbol=:angle`: variable de salida del modelo. Según el valor de `output`, la realización
+   retornada puede ser:
+  
+  + `:angle`: el modelo que retorna tiene salida de ángulo, dado por: 
+  
+   ``\\begin{bmatrix} \\dot x_1 \\\\ \\dot x_2 \\end{bmatrix} = \\begin{bmatrix} - a &  0 \\\\  1 & 0 \\end{bmatrix} \\begin{bmatrix}  x_1 \\\\  x_2 \\end{bmatrix} +  \\begin{bmatrix} b \\\\ 0 \\end{bmatrix} u``
+   
+   ``y =  \\begin{bmatrix} 0 & 1 \\end{bmatrix}\\begin{bmatrix}  x_1 \\\\  x_2 \\end{bmatrix}``.
+
+  + `:speed`: el modelo que retorna es de velocidad angular, dado por:
+
+   ``\\dot x_1 = - a\\,x_1 + b\\,u``
+
+   ``y =  x_1``
+       
+
+# Retorna
+- `sys_ss::ControlSystemsBase.StateSpace`: realización continua en espacio de
+  estado de la plataforma DCMotor para la salida seleccionada.
+
+# Nota
+- Los parámetros ``a`` y ``b`` usados en las realizaciones se toman de los valores estimados por medio de las funciones [`get_model_step`](@ref) o [`get_model_prbs`](@ref).
+
+# Ejemplos
+```julia
+sys = MotorSystem();
+ss_angle = ss(sys, :angle)     # modelo del ángulo
+ss_speed = ss(sys, :speed)     # modelo en velocidad angular
+```
+"""
+function ss(sys::MotorSystem, output::Symbol = :angle)
+    G = tf(sys)
+    b = numvec(G)[1][1]
+    a = denvec(G)[1][2]
+   
+    if output==:angle
+         # obtengo la representación si la salida es ángulo
+        A = [- a 0; 1 0]
+        B = [b; 0]
+        C = [0 1]   
+    else
+         # obtengo la representación si la salida es velocidad angular
+        A = [-a]
+        B = [b]
+        C = [1]  
+        
+    end
+    D = [0]
+    sys_ss = ss(A,B,C,D)
+    return sys_ss
+end
+
+
 """
     speed_from_volts(sys::MotorSystem, volts::Real)
 
-Calcula la velocidad angular estacionaria (en °/s) que alcanza el motor DC
-al aplicarle un voltaje constante `volts`, usando el modelo estático lineal
-`y = K*u + sign(u)*b` ajustado por [`get_static_model`](@ref) y almacenado en
-`datafiles/DCmotor_static_pars.csv`.
+Estima la velocidad angular de estado estacionario (en °/s) que alcanza el motor DC
+al aplicarle un voltaje constante especificado en la variable `volts`.
 
-Si `|volts|` está dentro de la zona muerta del motor (`|volts| <= zm`), la
+Para ello usa el modelo estático lineal a trozos:
+
+``\\qquad \\omega_{ee} = K\\,u + \\text{sign}(\\omega_{ee})\\, b``, 
+
+el cual debe haber sido previamente ajustado al correr [`get_static_model`](@ref).
+
+Si `|volts|` está dentro de la zona muerta estimada del motor (esto es, si `|volts| <= zm`), la
 velocidad estacionaria retornada es `0.0`.
 
 # Argumentos
-- `sys::MotorSystem`: objeto de la plataforma (usado solo para ubicar el
-  archivo del modelo estático).
-- `volts::Real`: voltaje aplicado, en voltios. Debe cumplir `|volts| <= 5.0`.
+- `sys::MotorSystem`: objeto que representa la plataforma
+
+- `volts::Real`: voltaje aplicado, en voltios. Debe cumplir que
+
+    `|volts|` ``\\leq  5.0`` V.
 
 # Retorna
-- `Float64`: velocidad angular estacionaria estimada, en grados/segundo.
+- `wee::Float64`: velocidad angular estacionaria estimada (en °/s) que se produce al aplicar
+  el voltaje especificado en la variable `volts`.
 
 # Lanza
-- `ErrorException` si `|volts| > 5.0`.
+- `ErrorException` si `|volts|` `` > 5.0`` V.
 
 # Ejemplos
 ```julia
@@ -552,35 +655,36 @@ function speed_from_volts(sys::MotorSystem, volts::Real)
     K, b, zm = read_csv_file3(_datafile("DCmotor_static_pars.csv"))
     K, b, zm = K[1], b[1], zm[1]
     if abs(volts) <= zm
-        return 0.0
-    end
+        wee = 0.00
+        
+    elseif (zm < abs(volts) <= 5.0)
+        wee= K * volts + sign(volts)*b
+    else
+        error("volts debe estar en [-5, 5]") 
     
-    if zm < abs(volts) <= 5.0
-        return K * volts + sign(volts)*b
     end
-    error("volts debe estar en [0, 5]")  
-
+    return wee
 end
 
 """
     volts_from_speed(sys::MotorSystem, speed::Real)
 
-Calcula el voltaje constante necesario para que el motor DC alcance, en
-estado estacionario, la velocidad angular `speed` (en °/s). Es la función
-inversa de [`speed_from_volts`](@ref) y usa el mismo modelo estático lineal
-almacenado en `datafiles/DCmotor_static_pars.csv` y
-`datafiles/DCmotor_static_gain_response.csv`.
+Estima el voltaje constante necesario para que el motor DC alcance, en
+estado estacionario, la velocidad angular indicada en la variable `speed` (en °/s). Es la función
+inversa de [`speed_from_volts`](@ref) y usa el mismo modelo estático lineal a trozos dado por:
+
+``\\qquad u=\\dfrac{\\omega_{ee}- \\text{sign}(\\omega_{ee})\\,b}{K}``
 
 # Argumentos
-- `sys::MotorSystem`: objeto de la plataforma (usado solo para ubicar los
-  archivos del modelo estático).
-- `speed::Real`: velocidad angular deseada, en grados/segundo. Debe estar
-  entre `0` y la velocidad máxima medida experimentalmente (típicamente
-  cercana a `800` °/s a 5V).
+- `sys::MotorSystem`: objeto que representa la plataforma
+- `speed::Real`: velocidad angular de estado estacionario especificada (en °/s). Debe ser inferior
+   a la máxima velocidad medida experimentalmente (típicamente  cercana a `800` °/s a 5V), es decir,
+
+   `|speed|` ``\\leq  800 °/s``
 
 # Retorna
-- `Float64`: voltaje, en voltios, necesario para alcanzar `speed` en estado
-  estacionario.
+- `volts::Float64`: voltaje [V] estimado requerido para alcanzar la velocidad angular de estado
+  estacionario definida en la variable `speed`,.
 
 # Lanza
 - `ErrorException` si `|speed|` excede el rango medido experimentalmente.
@@ -600,13 +704,14 @@ function volts_from_speed(sys::MotorSystem, speed::Real)
     K, b, zm = K[1], b[1], zm[1]
     
     if abs(speed) <= 2 
-        return sign(speed)*zm
+        volts = sign(speed)*zm
+    elseif (2 < abs(speed) <= y[end])
+        volts = (speed - sign(speed)*b)/K
+    else 
+         error("speed debe estar entre [0 y $(round(y[end],digits=1))]")
     end
-
-    if 2 < abs(speed) <= y[end]
-        return (speed - sign(speed)*b)/K
-    end
-    error("speed debe estar entre [0 y $(round(y[end],digits=1))]")
+    return volts
+   
 end
 
 
@@ -624,8 +729,16 @@ function save_experiment(data::Vector, filename::String, header::String)
     return nothing
 end
 
-
-
+function get_deadzone()
+    try
+    _,_,zm = read_model(_datafile("DCmotor_static_pars.csv"))
+    zm = zm[1]
+    return zm
+    catch
+        zm = 0.17 
+        return zm   
+    end    
+end
 
 
 

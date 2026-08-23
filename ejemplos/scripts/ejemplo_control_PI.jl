@@ -24,7 +24,7 @@ using ControlSystems
 s=tf("s")
 
 # identificacion del sistema
-G, L = get_model_prbs(sys; yop=360,sigma=100, usefile=true)
+G, L = get_model_prbs(sys; yop=360,sigma=100)
 #G = get_fomodel_step(sys; yop=360)
 
 # parametros del sistema
@@ -47,18 +47,20 @@ tr = 0.2
 
 ωn0 = maximum([ωn1, ωn2, ωn3])
 
-ωn=12
+
+using ControlSystems
+ωn=15
 ζ = 0.7
 # calculo de las constantes
 Kp = (2*ζ*ωn-a)/b
 Ki = ωn^2/b
 
-Gd=G*delay(0.01)
+Gd=G#*delay(0.01)
 G1  = feedback(Gd,Kp)
 T= feedback(G1*Ki/s,1)
 set_pid(sys;  kp=Kp, ki=Ki, kd=0, beta=0, output=:speed, deadzone=0)
 result = step_closed(sys; r0 = 00, r1 =400,  t0 = 1.5, t1 =2); 
-stepinfo_exp(result;T=T)# %% iteraciones
+stepinfo(result, T)# %% iteraciones
 
 # calculo de las constantes
 set_reference(sys, 5)

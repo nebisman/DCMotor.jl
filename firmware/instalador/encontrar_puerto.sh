@@ -18,7 +18,7 @@ die() { echo "ERROR: $1" >&2; exit 1; }
 command -v udevadm &>/dev/null || die "Se requiere 'udevadm', pero no está instalado."
 
 # ── Detectar el puerto de la placa ────────────────────────────────────────
-log "Buscando el puerto de la placa ESP32..."
+log "Buscando el puerto de la plataforma DCMotor..."
 
 # Mismo criterio de detección (VID:PID y palabras clave) que
 # cargar_firmware.sh, pero implementado en bash puro con udevadm para no

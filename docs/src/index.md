@@ -21,8 +21,7 @@ componentes para controlar un servomotor DC por medio de un microcontrolador ESP
 
 Para instalar el paquete y el firmware asociado, vea la sección [Instalación del
 paquete](@ref). Para el listado completo de funciones, ver el
-panel izquierdo, en la sección **Funciones** (Información, Identificación y
-Control).
+panel izquierdo, en la sección **Funciones**.
 
 ### Introducción rápida
 

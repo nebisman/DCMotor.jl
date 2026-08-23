@@ -172,6 +172,8 @@ float ki = 1.8122941;
 float kd  =0.0042447215;
 float N = 10;
 float beta = 0;
+
+
 float h = SAMPLING_TIME; //sampling time
 float deadzone = DEAD_ZONE;
 const float br = 1/0.99;
@@ -208,7 +210,7 @@ uint16_t divider = 1;
 
 
 
-// Parameters of a general controller for the thermal system
+// Parameters of a general controller for the motor system
 uint8_t order;
 float A [MAX_ORDER][MAX_ORDER] = {0};   // Controller's A matrix
 float B [MAX_ORDER][2] = {0};    // Controller's B matrix
@@ -748,7 +750,7 @@ void publishStateOpen(uint indexFrame, uint currFrame) {
 static void publishStateTask (void *pvParameters) {
     // local constants
     uint32_t rv;
-    uint16_t  indexFrame;
+    uint16_t indexFrame;
     uint16_t currFrame;
 
     for (;;) {

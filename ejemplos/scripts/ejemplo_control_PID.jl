@@ -48,7 +48,7 @@ n = 3
 
 # Calculo de las constantes del PID Segundo orden
 ωn = 15
-ζ = 0.75
+ζ0 = 0.75
 n=2
 
 T  = n*ωn^3/((s+n*ωn)*(s^2 + 2*ζ0*ωn*s +ωn^2))
@@ -56,7 +56,8 @@ Kd = ((2ζ + n) * ωn - a) / b
 Kp = (1 + 2n * ζ) * ωn^2 / b
 Ki = n * ωn^3 / b
 set_pid(sys;  kp=Kp, ki=Ki, kd=Kd, beta=0, N=5, output=:angle, deadzone=0.1)
-result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 1, t1 =3);stepinfo_exp(result;T)
+result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 1, t1 =3);
+stepinfo(result, T)
 
 
 #%% calculo de las constantes del PID con ITAE
@@ -69,7 +70,8 @@ Ki = ωn^3/b
  
 
 set_pid(sys;  kp=Kp, ki=Ki, kd=Kd, beta=0, N=10, output=:angle)
-result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 1, t1 =2);stepinfo_exp(result;T)
+result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 1, t1 =2);
+stepinfo(result, T)
 
 
 using Printf

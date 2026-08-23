@@ -16,10 +16,12 @@ makedocs(;
     pages=[
         "Inicio" => "index.md",
         "Instalación" => [
+
             "Instalación del firmware" => "instalacion/firmware.md",
-            "Instalación del software" => [
-                "Instalación del paquete" => "instalacion/paquete.md",
-                "Permisos del puerto serial en linux" => "instalacion/permisos_serial.md",
+            "Instalación del paquete" => "instalacion/paquete.md",
+            "Problemas con el puerto serial" => [                
+                "Permisos del puerto serial en linux" => "instalacion/permisos_serial_linux.md",
+                "Driver CH340 en Windows" => "instalacion/driver_ch340_windows.md",
             ],
         ],
         "Funciones" => [
@@ -29,6 +31,8 @@ makedocs(;
                 "`speed_from_volts`" => "funciones/informacion/speed_from_volts.md",
                 "`volts_from_speed`" => "funciones/informacion/volts_from_speed.md",
                 "`get_last_model`" => "funciones/informacion/get_last_model.md",
+                "`tf`" => "funciones/informacion/tf.md",
+                "`ss`" => "funciones/informacion/ss.md",
             ],
             "Identificación" => [
                 "`get_static_model`" => "funciones/identificacion/get_static_model.md",
@@ -44,7 +48,7 @@ makedocs(;
                 "`step_closed`" => "funciones/control/step_closed.md",
                 "`stairs_closed`" => "funciones/control/stairs_closed.md",
                 "`profile_closed`" => "funciones/control/profile_closed.md",
-                "`stepinfo_exp`" => "funciones/control/stepinfo_exp.md",
+                "`stepinfo`" => "funciones/control/stepinfo.md",
             ],
             "Diseño de controladores" => [
                 "`cont1dof`" => "funciones/diseno/cont1dof.md",

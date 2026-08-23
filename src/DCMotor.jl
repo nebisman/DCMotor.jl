@@ -36,6 +36,8 @@ include("graphics.jl")
 function __init__()
     PATH_DATA[] = pwd()
     _ensure_dirs()   
+    close = MotorSystem(port="")
+    disconnect!(close)
 end
 
 # ── API pública ──────────────────────────────────────────────────────────────
@@ -54,7 +56,7 @@ export float2hex, hex2float, long2hex, hex2long
 export signal2hex, time2hex, matrix2hex, hexframe_to_array
 
 # Lectura de archivos
-export read_csv_file, read_csv_file3
+export read_csv_file, read_csv_file3, get_deadzone
 
 #figuras
 export redraw!, screen_pluto, entorno
@@ -67,7 +69,7 @@ export get_last_model, speed_from_volts, volts_from_speed
 
 # Funciones de control (controlsys)
 export set_reference, set_pid, set_controller
-export step_closed, stairs_closed, profile_closed, stepinfo_exp
+export step_closed, stairs_closed, profile_closed, stepinfo
 
 # Funciones de identificación (identsys)
 export step_open, prbs_open

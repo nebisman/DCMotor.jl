@@ -10,7 +10,7 @@ using Printf
 using Statistics
 using RobustAndOptimalControl
 using LaTeXStrings
-
+import ControlSystemsBase: stepinfo
 
 
 
@@ -58,7 +58,7 @@ end
 
 """
     set_pid(sys::MotorSystem; kp=0.2164, ki=1.8122, kd=0.004244, N=10.0, beta=0.0,
-            output=:angle, deadzone=0.125)
+            output=:angle, deadzone=get_deadzone())
 
 Esta función configura los cinco parámetros `kp`, `ki`, `kd`, `N` y `beta` de
 un controlador PID de 2-GDL (dos grados de libertad), como el mostrado en la siguiente figura:
@@ -77,8 +77,8 @@ un controlador PID de 2-GDL (dos grados de libertad), como el mostrado en la sig
   del controlador PID.
 - `output::Symbol=:angle`: variable controlada, `:angle` (ángulo) o
   `:speed` (velocidad angular).
-- `deadzone::Real=0.125`: zona muerta de la señal de control, en voltios,
-  para evitar *chattering* del motor cerca de cero.
+- `deadzone::Real`: zona muerta de la señal de control, en voltios,
+  para evitar *chattering* del motor cerca de cero. Por defecto usa la encontrada en el modelo estático.
 
 # Retorna
 - `nothing`, una vez que los parámetros del PID se han actualizado
@@ -104,7 +104,7 @@ sys = MotorSystem();
 Luego, el controlador PID se programa así:
 
 ```julia
-, N=10.0, beta=0.0, output=:angle, deadzone=0.15)
+set_pid(sys; kp=0.2, ki=1.0, kd=0.0082, N=10.0, beta=0.0, output=:angle, deadzone=0.2)
 
     "PID actualizado: kp=0.2  ki=1.0  kd=0.0082  N=10.0  β=0.0"
 ```
@@ -112,7 +112,7 @@ Luego, el controlador PID se programa así:
 function set_pid(sys::MotorSystem;
                   kp::Real = 0.2164, ki::Real = 1.8122, kd::Real = 0.004244,
                   N::Real = 10.0, beta::Real = 0.0,
-                  output::Symbol = :angle, deadzone::Real = 0.125)
+                  output::Symbol = :angle, deadzone::Real = get_deadzone())
     type_map = Dict(:angle => 0, :speed => 1)
     haskey(type_map, output) || error("output debe ser :angle o :speed")
 
@@ -138,7 +138,7 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    set_controller(sys::MotorSystem, controller; output=:angle, deadzone=0.2)
+    set_controller(sys::MotorSystem, controller; output=:angle, deadzone=get_deadzone())
 
 Programa un controlador en la plataforma DCMotor. El controlador se define como una función de transferencia en el dominio de
 Laplace `s`, la cual es automáticamente discretizada.
@@ -173,7 +173,7 @@ grados de libertad, como se muestra a continuación:
 # Argumentos de palabra clave
 - `output::Symbol=:angle`: variable controlada, `:angle` (ángulo) o
   `:speed` (velocidad angular).
-- `deadzone::Real=0.2`: zona muerta de la señal de control, en voltios.
+- `deadzone`: zona muerta de la señal de control, en voltios. Por defecto, usa la encontrada por el modelo estático. 
 
 # Retorna
 - `nothing`. Imprime un mensaje de confirmación en consola.
@@ -199,7 +199,7 @@ using DCMotor
 sys = MotorSystem();
 s = tf("s");
 C = (0.1071s + 2.2463)/(s + 35.5428);    
-set_controller(sys, C; output=:angle, deadzone=0.2)
+set_controller(sys, C; output=:angle)
 
     "Controlador cargado en DCMotor"
 ```
@@ -218,13 +218,13 @@ s = tf("s");
 C1 = (0.0374s + 2.6207)/(s + 69.5428)
 C2 = -(0.0279s + 2.6207)/(s + 69.5428)
 C = [C1 C2]
-set_controller(sys, C; output=:angle, deadzone=0.2);
+set_controller(sys, C; output=:angle);
 
     "Controlador cargado en DCMotor"
 ```
 """
 function set_controller(sys::MotorSystem, controller;
-     output::Symbol = :angle, deadzone::Real = 0.2)
+     output::Symbol = :angle, deadzone::Real = get_deadzone())
     # Determinar si es 1 DOF o 2 DOF
     ni = size(controller, 2)  # número de entradas
 
@@ -247,7 +247,7 @@ function set_controller(sys::MotorSystem, controller;
     order = size(Ad, 1)
     Q = 100000*diagm(ones(size(Ad,1)))
     
-    #Lg = lqr(Discrete, Ad',Cd',Q, 100000)# xxx
+    
     Lg = kalman(sys_d, Q,1) 
 
     if ni == 1
@@ -382,7 +382,7 @@ function step_closed(sys::MotorSystem;
         # Reconstruir gráfica desde cero para evitar trazas duplicadas
         plt = plot(layout=(2, 1), size=(900, 500),
              title=["Step cerrado  r0=$(@sprintf("%.1f",r0)) → r1=$(@sprintf("%.1f",r1))" ""],
-             ylabel=["Grados (o °/s)" "Volts"],
+             ylabel=["Grados (o °/s)" "Voltios"],
              xlabel=["Tiempo (s)" "Tiempo (s)"],
              xlims=[(0, t0 + t1 - h) (0, t0 + t1 - h)],
              ylims=[(min(r0, r1) - 0.6delta, max(r0, r1) + 0.6delta) (-5, 5)],
@@ -420,35 +420,53 @@ end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    stairs_closed(sys::MotorSystem; stairs=(90, 180, 270), duration=1.5)
+    stairs_closed(sys; stairs=[90, 180, 270], duration=1.5)
 
-Ejecuta en lazo cerrado una señal de referencia tipo "escalera": la
-referencia toma sucesivamente cada uno de los valores de `stairs`,
-permaneciendo `duration` segundos en cada nivel, mientras el controlador
-previamente cargado (con [`set_pid`](@ref) o [`set_controller`](@ref)) actúa
-sobre la planta. Los datos se grafican en tiempo real y, al finalizar, se
-guardan en `datafiles/DCmotor_stairs_closed_exp.csv` y la referencia se
-vuelve a fijar en `0`.
+Ejecuta  un experimento de seguimiento de una señal de referencia tipo "escalera" sobre la
+plataforma DCMotor. La referencia toma sucesivamente cada uno de los
+valores de de los escalones definidos por el usuario (en `stairs`), con una duración establecida en la variable `duration`,
+como se muestra en la figura siguiente:
+
+
+![Señal de referencia tipo escalera para stairs_closed](../../assets/stairs_response.png)
+
+Los parámetros mostrados en la figura se describen a continuación:
 
 # Argumentos
-- `sys::MotorSystem`: objeto de la plataforma, previamente configurado con
-  un controlador.
+- `sys::MotorSystem`: objeto que representa la plataforma.
 
 # Argumentos de palabra clave
-- `stairs`: colección (`Tuple` o `Vector`) con los niveles sucesivos de
-  referencia.
+- `stairs`: colección con los escalones sucesivos de referencia deseada.
 - `duration::Real=1.5`: duración en segundos de cada escalón de la escalera.
 
 # Retorna
-- `(t, r, y, u)`: tupla de vectores `Vector{Float64}` con el tiempo (s), la
-  referencia, la salida medida y la señal de control (voltios).
+- `(t, r, y, u)`: tupla de vectores con el tiempo (s), la
+  referencia, la salida medida y la señal de control (en voltios).
 
-# Ejemplos
+# Notas
+- El controlador que actúa sobre la plataforma en este experimento ha sido previamente cargado con
+[`set_pid`](@ref) o [`set_controller`](@ref).
+- Se genera una gráfica para visualizar la respuesta a la señal de
+  referencia en tiempo real, mostrando la salida y la señal de control
+  durante el experimento.
+- Los datos del experimento se guardan en un archivo CSV en
+  `datafiles/DCmotor_stairs_closed_exp.csv` que está presente en el
+  directorio de trabajo.
+
+# Ejemplo
+Primero, asegúrese de haber importado el paquete DCMotor, de haber
+definido el sistema y de haber cargado un controlador, así:
+
 ```julia
 using DCMotor
 sys = MotorSystem();
-set_pid(sys; kp=2.0, ki=0.5, output=:angle);
-t, r, y, u = stairs_closed(sys; stairs=(90, 180, 270, 90), duration=2.0);
+set_pid(sys; kp=0.2, ki=1.0, kd=0.0082)
+```
+
+Luego, ejecute el experimento de obtención de la respuesta en lazo cerrado a una señal de referencia tipo escalera, así:
+
+```julia
+stairs_closed(sys; stairs=[90, 180, 270, 90], duration=2.0)
 ```
 """
 function stairs_closed(sys::MotorSystem;
@@ -476,7 +494,7 @@ function stairs_closed(sys::MotorSystem;
 
     plt = plot(layout=(2, 1), size=(900, 500),
         title=["Escaleras  $(length(stairs_v)) niveles, duración $(@sprintf("%.1f",total*h)) s" ""],
-        ylabel=["Grados (o °/s)" "Volts"],
+        ylabel=["Grados (o °/s)" "Voltios"],
         xlabel=["Tiempo (s)" "Tiempo (s)"],
         xlims=[(0, total * h) (0, total * h)],
         ylims=[(min(0, mn - 0.1*abs(span)), mx + 0.1*span) (-5.5, 5.5)],
@@ -497,7 +515,7 @@ function stairs_closed(sys::MotorSystem;
 
         plt = plot(layout=(2, 1), size=(900, 500),
             title=["Escaleras con $(length(stairs_v)) niveles, duración $(@sprintf("%.1f",total*h)) s" ""],
-            ylabel=["Grados (o °/s)" "Volts"],
+            ylabel=["Grados (o °/s)" "Voltios"],
             xlabel=["Tiempo (s)" "Tiempo (s)"],
             xlims=[(0, total * h) (0, total * h)],
             ylims=[(min(0, mn - 0.1*abs(span)), mx + 0.1*span) (-5.5, 5.5)],
@@ -532,19 +550,13 @@ end
 
 Ejecuta en lazo cerrado un perfil de referencia arbitrario sobre la
 plataforma DCMotor. La señal de referencia se define como una serie de
-puntos ``(t_i, r_i)``, donde cada punto especifica un
-instante de tiempo y su valor de referencia correspondiente.
+instantes de tiempo `t1`, `t2`,...`ti`, a los cuales corresponden, respectivamente, 
+los valores de la señal de referencia `t1`, `t2`,...`ti`, como se ilustra a continuación
 
-El controlador que actúa sobre la plataforma en este experimento ha sido previamente cargado con
-[`set_pid`](@ref) o [`set_controller`](@ref). 
-
-
-La siguiente figura ilustra cómo se define un perfil de referencia para
-esta función:
 
 ![Perfil de referencia definido por puntos para profile_closed](../../assets/profile_response.png)
 
-A continuación se describen los parámetros mostrados en la figura anterior:
+Los parámetros de la función son los siguientes:
 
 # Argumentos
 - `sys::MotorSystem`: objeto que representa la plataforma.
@@ -560,6 +572,8 @@ A continuación se describen los parámetros mostrados en la figura anterior:
   referencia interpolada, la salida medida y la señal de control (en voltios).
 
 # Notas
+- El controlador que actúa sobre la plataforma en este experimento ha sido previamente cargado con
+[`set_pid`](@ref) o [`set_controller`](@ref). 
 - Se genera una gráfica para visualizar la respuesta al perfil de referencia en tiempo
   real, mostrando la salida y la señal de control durante el experimento.
 - Los datos del experimento se guardan en un archivo CSV en 
@@ -613,7 +627,7 @@ function profile_closed(sys::MotorSystem;
 
     plt = plot(layout=(2, 1), size=(900, 500),
         title=["Perfil  duración=$(@sprintf("%.1f",tv_cmd[end])) s, $(length(tv_cmd)) puntos" ""],
-        ylabel=["Grados (o °/s)" "Volts"],
+        ylabel=["Grados (o °/s)" "Voltios"],
         xlabel=["Tiempo (s)" "Tiempo (s)"],
         xlims=[(0, (total - 1) * h) (0, (total - 1) * h)],
         ylims=[(mn - 0.1*abs(span), mx + 0.1*span) (-5.5, 5.5)],
@@ -633,7 +647,7 @@ function profile_closed(sys::MotorSystem;
 
         plt = plot(layout=(2, 1), size=(900, 500),
             title=["Perfil  duración=$(@sprintf("%.1f",tv_cmd[end])) s, $(length(tv_cmd)) puntos" ""],
-            ylabel=["Grados (o °/s)" "Volts"],
+            ylabel=["Grados (o °/s)" "Voltios"],
             xlabel=["Tiempo (s)" "Tiempo (s)"],
             xlims=[(0, (total - 1) * h) (0, (total - 1) * h)],
             ylims=[(mn - 0.1*abs(span), mx + 0.1*span) (-5.5, 5.5)],
@@ -688,27 +702,22 @@ end
 
 
 """
-    stepinfo_exp(res; T=nothing, settling_th=0.02, risetime_th=(0.1, 0.9))
+    stepinfo(res, T=nothing; settling_th=0.02, risetime_th=(0.1, 0.9))
 
 Calcula métricas de la respuesta al escalón a partir de datos experimentales
 en lazo cerrado, y grafica la respuesta medida (con las métricas anotadas)
-junto con, opcionalmente, la respuesta simulada de un modelo prototipo `T`.
+junto con, opcionalmente, la respuesta simulada con un modelo de lazo cerrado nominal `T`.
 
-Antes de calcular el sobrepico, el tiempo de estabilización y el tiempo de
-subida, la salida `y` se filtra con un pasabajos (mediante `prefilter`,
-frecuencia de corte 12.5 Hz) para reducir el efecto del ruido de medición.
 
 # Argumentos
 - `res`: tupla `(t, r, y, u)` con los vectores de tiempo, referencia, salida
-  medida y señal de control, tal como los retorna [`step_closed`](@ref).
+  medida y señal de control, tal y como los retorna [`step_closed`](@ref).
 
 # Argumentos de palabra clave
-- `T=nothing`: función de transferencia (normalizada, de ganancia estática
-  unitaria) de un modelo prototipo en lazo cerrado; si se suministra, su
-  respuesta al escalón (escalada según el tamaño del escalón experimental)
-  se superpone en la gráfica para comparar con la respuesta medida.
+- `T=nothing`: función de transferencia del modelo de lazo cerrado; cuando se suministra, su
+  respuesta al escalón se superpone en la gráfica experimental para comparar.
 - `settling_th::Real=0.02`: umbral, como fracción del tamaño del escalón,
-  de la banda usada para el tiempo de estabilización (por defecto, 2 %).
+  de la banda usada para el cálculo del tiempo de estabilización (por defecto, 2 %).
 - `risetime_th::Tuple{Real,Real}=(0.1, 0.9)`: niveles, como fracción del
   tamaño del escalón, usados para el tiempo de subida (por defecto, entre
   10 % y 90 %).
@@ -722,16 +731,36 @@ frecuencia de corte 12.5 Hz) para reducir el efecto del ruido de medición.
   umbrales usados (`settling_th`, `risetime_th`) y el máximo de la señal de
   control (`u_max`).
 
-# Ejemplos
+# Ejemplo
+Primero, asegúrese de haber importado el paquete DCMotor, de haber
+definido el sistema y de haber cargado un controlador, así:
+
 ```julia
 using DCMotor
 sys = MotorSystem();
-set_pid(sys; kp=2.0, ki=0.5, output=:angle);
-result = step_closed(sys; r0=0, r1=100, t0=0.5, t1=2.0);
-info = stepinfo_exp(result)
+set_pid(sys; kp=0.2, ki=1.0, kd=0.0082)
 ```
+
+Luego obtenga la respuesta al escalón y use stepinfo
+
+```julia
+result = step_closed(sys; r0=0, r1=100, t0=0.5, t1=2.0);
+info = stepinfo(result)
+
+    Info Resp. Escalón:
+      Valor inicial:        0.000
+      Valor final:         99.771
+      Cambio escalón:     100.000
+      Pico:                99.779
+      Tiempo pico:          0.840 s
+      Sobrepico:             0.01 %
+      T. estabilización:    0.550 s
+      T. subida:            0.318 s
+      Max. |u(t)|:          4.478 V
+```
+
 """
-function stepinfo_exp(res; T = nothing,  settling_th = 0.02, risetime_th = (0.1, 0.9))
+function stepinfo(res, T = nothing;  settling_th = 0.02, risetime_th = (0.1, 0.9))
     
     t1 = res[1] 
     r1 = res[2]
@@ -778,7 +807,7 @@ function stepinfo_exp(res; T = nothing,  settling_th = 0.02, risetime_th = (0.1,
     
     
     data = iddata(y1, u1, SAMPLING_TIME)
-    data = prefilter(data, 0, 12.5)
+    data = prefilter(data, 0, 15)
    
     y_filtered = data.y
     y_filtered = y_filtered[step_idx: end]

@@ -8,18 +8,17 @@
 ## definiciones
 using DCMotor
 sys = MotorSystem();
-s = tf("s");
-G, L = get_last_model(sys,:angle)
+G = tf(sys,:angle)
 
 
 ## diseño y carga del controlador
 polos_lc = [-10+10im, -10-10im, -80]
 C = cont1dof(G, polos_lc) 
-set_controller(sys, C; output=:angle, deadzone=0.2)
+set_controller(sys, C; output=:angle)
 
 
 # Aqui vemos la respuesta al escalon en lazo cerrado
 
 T = feedback(C*G, 1)
 result = step_closed(sys; r0 = 0, r1 =100,  t0 = 0.5, t1 =2); 
-stepinfo_exp(result;T)
+stepinfo(result,T)
