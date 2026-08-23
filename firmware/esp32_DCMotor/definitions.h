@@ -1,5 +1,6 @@
 // Definitions for the DC motor system
 // Created by LB on 20/05/026 MIT LICENSE.
+// new pid type
 #include <stdlib.h>
 #include <ESP32Encoder.h>
 #include <ArduinoJson.h>

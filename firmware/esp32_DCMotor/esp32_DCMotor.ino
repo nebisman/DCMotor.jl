@@ -1,9 +1,9 @@
 /********************************************************************************
-  FIRMARE for UNDCMOTOR SRIAL PORT
-  LB 2026 
+  FIRMARE for UNDCMOTOR SERIAL PORT
+  LB and HD 2026 
   MIT License
 ********************************************************************************/
-
+// new pid type
 
 #include "definitions.h"
 
