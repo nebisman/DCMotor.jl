@@ -454,7 +454,7 @@ Luego, obtenga el modelo de ganancia estática así:
 uee, yee = get_static_model(sys);
 ```
 """
-function get_static_model(sys::MotorSystem; points::Int = 20)
+function get_static_model(sys::MotorSystem; points::Int = 15)
     timestep = 3.0
     dz_points = 5
     u_dz = range(0.15, 0.25,  length=dz_points)
@@ -712,7 +712,7 @@ function get_model_step(sys::MotorSystem;
         legend=:bottomright, grid=true, gridalpha=0.15, margin=5Plots.mm)
     plot!(plt, subplot=1, t, y, label="Datos", color=:teal,
           linewidth=1.5, linestyle=:dot)
-    plot!(plt, subplot=1, tsim, ymodel, label=model_str, color=:deeppink,
+    plot!(plt, subplot=1, tsim, ymodel, label=model_str, legendfontsize = 10,color=:deeppink,
           linewidth=1.5)
     plot!(plt, subplot=2, t, u, label="Entrada", color=:green)
     display(plt)
@@ -827,7 +827,7 @@ function get_model_prbs(sys::MotorSystem;
     end
 
     if !usefile
-        t, u, y = prbs_open(sys; low_val=ua, high_val=ub, divider=2)
+        t, u, y = prbs_open(sys; low_val=ua, high_val=ub, divider=4)
     else 
         t, u, y = read_csv_file3(_datafile("DCmotor_prbs_open_exp.csv"))
     end
