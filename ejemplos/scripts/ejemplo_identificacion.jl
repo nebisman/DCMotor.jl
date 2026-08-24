@@ -23,5 +23,5 @@ t, u, y = prbs_open(sys; low_val=2.0, high_val=3.5, divider=2)
 ## 5. Podemos estimar los parámetros de la planta por respuesta al escalón:
 G, L = get_model_step(sys; yop=300)
 
-#  6. Podemos estimar los parámetros de la planta por respuesta a una señal PRBS
+##  6. Podemos estimar los parámetros de la planta por respuesta a una señal PRBS
 G, L = get_model_prbs(sys; yop=300)
