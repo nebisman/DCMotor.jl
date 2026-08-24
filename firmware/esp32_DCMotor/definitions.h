@@ -177,9 +177,10 @@ float p2 = 0.4239;
 float p3 = 0.02075;
 float p4 = 0.2032;
 float p5 = 0.036244;
+float p6 = 1/0.99;
 float kp = 0.2164;
 float beta = 1; 
-const float p6 = 1/0.99;
+
 
 float h = SAMPLING_TIME; //sampling time
 float deadzone = DEAD_ZONE;
@@ -497,6 +498,7 @@ void  onCommandReceived(char* lastTopic, byte* lastPayload) {
         p3 = hex2Float((const char *) doc["p3"]);
         p4 = hex2Float((const char *) doc["p4"]);
         p5 = hex2Float((const char *) doc["p5"]);
+        p6 = hex2Float((const char *) doc["p6"]);
         beta = hex2Float((const char *) doc["beta"]);
         kp = hex2Float((const char *) doc["kp"]);
         typeControl = hex2Long((const char *) doc["typeControl"]);     

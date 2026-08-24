@@ -152,9 +152,8 @@ static void speedControlPidTask(void *pvParameters) {
             
             D = p3*D + p4*y;  
             // updating integral action
-            if (p5 != 0) {
-                I = I + p5 * (reference - y) + p6 * (usat - u);
-            }
+            I = I + p5 * (reference - y) + p6 * (usat - u);
+            
         }
         else if (typeControl == PID_CONTROLLER_SPEED_FILTER) {
             y2 = p1*y2 + p2*(y-y1);
@@ -170,9 +169,8 @@ static void speedControlPidTask(void *pvParameters) {
             usat =  constrain(u, -5 + deadzone, 5 - deadzone);
             voltsToMotor(compDeadZone(usat, deadzone));
 
-            if (p3!= 0) {
-                I = I + p3 * e + p5 * (usat - u);
-            }
+            I = I + p3 * e + p6 * (usat - u);
+            
 
         }
 
@@ -239,9 +237,8 @@ static void controlPidTask(void *pvParameters) {
 
             // updating integral action
         
-            if (p5!= 0) {
-                I = I + p5 * e + p6 * (usat - u);
-            }
+            I = I + p5 * e + p6 * (usat - u);
+            
             y1 = y;
         } 
         else if (typeControl == PID_CONTROLLER_FILTER) {
@@ -261,9 +258,8 @@ static void controlPidTask(void *pvParameters) {
             usat =  constrain(u, -5 + deadzone, 5 - deadzone);
             voltsToMotor(compDeadZone(usat, deadzone));
 
-            if (p3!= 0) {
-                I = I + p3 * e + p5 * (usat - u);
-            }
+            I = I + p3 * e + p6 * (usat - u);
+            
         }   
 
     
