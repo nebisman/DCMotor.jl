@@ -2,9 +2,10 @@
 # definicion del sistema
 using DCMotor
 sys = MotorSystem();
-G = tf(sys, :angle)
+Gang = tf(sys, :angle)
 
-
+b = numvec(Gang)[1][1]
+a = denvec(Gang)[1][2]
 # Calculo de las constantes del PID para el sistema de segundo orden
 ωn = 12
 ζ0 = 0.7

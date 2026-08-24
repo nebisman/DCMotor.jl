@@ -125,6 +125,8 @@ function set_pid(sys::MotorSystem;
         p3 = kd / (N*(kd/N + h))
         p4 = kd*h / (kd/N + h)^2
         p5 = ki * h
+
+
     else
         type_map = Dict(:angle => 6, :speed => 7)
         p5 = Tf^2 + 2*h*Tf + 2*h^2
@@ -135,7 +137,12 @@ function set_pid(sys::MotorSystem;
     end
 
     haskey(type_map, output) || error("output debe ser :angle o :speed")
-
+    
+    if ki!== 0
+       p6 = 1.0/0.99
+    else
+       p6=0.0
+    end 
 
     payload = Dict(       
         "p1"          => float2hex(p1),
@@ -143,6 +150,7 @@ function set_pid(sys::MotorSystem;
         "p3"          => float2hex(p3),
         "p4"          => float2hex(p4),
         "p5"          => float2hex(p5),
+        "p6"          => float2hex(p6),
         "kp"          => float2hex(kp),
         "beta"        => float2hex(beta),
         "typeControl" => long2hex(type_map[output]),
