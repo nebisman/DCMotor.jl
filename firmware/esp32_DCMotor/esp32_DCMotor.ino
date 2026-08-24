@@ -641,6 +641,8 @@ void setup() {
             CORE_CONTROL
     );
 
+
+    
     // Creating the task for speed PID control in core 0.
     xTaskCreatePinnedToCore(
             speedControlPidTask, // This is the control routine
