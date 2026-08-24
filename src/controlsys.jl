@@ -111,22 +111,33 @@ set_pid(sys; kp=0.2, ki=1.0, kd=0.0082, N=10.0, beta=0.0, output=:angle, deadzon
 """
 function set_pid(sys::MotorSystem;
                   kp::Real = 0.2164, ki::Real = 1.8122, kd::Real = 0.004244,
-                  N::Real = 10.0, beta::Real = 0.0,
+                  N::Real = 10.0, beta::Real = 0.0, Tf = nothing, 
                   output::Symbol = :angle, deadzone::Real = get_deadzone())
-    type_map = Dict(:angle => 0, :speed => 1)
-    haskey(type_map, output) || error("output debe ser :angle o :speed")
+    
+    
     
     h = SAMPLING_TIME
     
-    p0 = 0.0
-    p1 = kp * beta
-    p2 = kp + kd/(kd/N + h)
-    p3 = kd / (N*(kd/N + h))
-    p4 = kd*h / (kd/N + h)^2
-    p5 = ki * h
+    if Tf === nothing     
+        type_map = Dict(:angle => 0, :speed => 1)  
+        p1 = kp * beta
+        p2 = kp + kd/(kd/N + h)
+        p3 = kd / (N*(kd/N + h))
+        p4 = kd*h / (kd/N + h)^2
+        p5 = ki * h
+    else
+        type_map = Dict(:angle => 6, :speed => 7)
+        p5 = Tf^2 + 2*h*Tf + 2*h^2
+        p1= Tf^2 / p5
+        p2 = 2*h^2 / p5
+        p3 = ki*h
+        p4 = kd / h      
+    end
 
-    payload = Dict(     
-        "p0"          => float2hex(p0),  
+    haskey(type_map, output) || error("output debe ser :angle o :speed")
+
+
+    payload = Dict(       
         "p1"          => float2hex(p1),
         "p2"          => float2hex(p2),
         "p3"          => float2hex(p3),

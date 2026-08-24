@@ -81,6 +81,10 @@
 #define GENERAL_CONTROLLER_SPEED       3
 #define GENERAL_CONTROLLER_2P          4
 #define GENERAL_CONTROLLER_SPEED_2P    5
+#define PID_CONTROLLER_FILTER          6
+#define PID_CONTROLLER_SPEED_FILTER    7
+
+
 
 #define MAX_ORDER                      10
 
@@ -168,7 +172,6 @@ TaskHandle_t h_buttonTask;
 TaskHandle_t h_serialCommandTask;  // handle used by the UART ISR to wake the command task
 
 // PID control default parameters
-float p0 = 0.0; 
 float p1 = 0.2164;
 float p2 = 0.4239;
 float p3 = 0.02075;
@@ -455,6 +458,12 @@ void resumeControl(){
         case GENERAL_CONTROLLER_2P:
             vTaskResume(h_generalControlTask);
             break;
+        case PID_CONTROLLER_FILTER:
+            vTaskResume(h_controlPidTask);
+            break;
+        case PID_CONTROLLER_SPEED_FILTER:
+            vTaskResume(h_speedControlPidTask);
+            break;
     }
 }
 
@@ -483,7 +492,6 @@ void  onCommandReceived(char* lastTopic, byte* lastPayload) {
     JsonDocument doc;
     if (strstr(lastTopic, USER_SYS_SET_PID)) {
         deserializeJson(doc, lastPayload);
-        p0 = hex2Float((const char *) doc["p0"]);
         p1 = hex2Float((const char *) doc["p1"]);
         p2 = hex2Float((const char *) doc["p2"]);
         p3 = hex2Float((const char *) doc["p3"]);

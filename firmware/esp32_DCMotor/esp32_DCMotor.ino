@@ -100,15 +100,16 @@ static void speedControlPidTask(void *pvParameters) {
     /* this function computes a two parameter PID control with Antiwindup
      See Astrom ans Murray Feedback Systems: an Introduction for Scientists and Engineers
     */
-    static bool led_status = false;
+    
     const TickType_t taskPeriod = (pdMS_TO_TICKS(1000*h));
-
-    float P;       //  proportional action
-    float D;       //  derivative action
 
     /** state variables for the PID */
     static float I = 0;          // Integral action
+    static float D;       //  derivative action
+    static float y2;
+    static float y1;
     float e;
+
 
     for (;;) {
         TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -130,26 +131,51 @@ static void speedControlPidTask(void *pvParameters) {
         // reading the encoder
         y = encoderMotor.getCount() * pulses2degrees / h;
         encoderMotor.clearCount();
+        
         // computing the current reference depending of the current command
         computeReference();
-        // updating error
+    
 
-        u = p1*reference - p2*y + D + I;
-        
-        e = reference-y;
-        if ((abs(reference) <= 5) & (abs(e) < 10) ){
-            u = 0;
+        if (typeControl == PID_CONTROLLER_SPEED) {
+            
+            //
+            u = p1*reference - p2*y + D + I;
+            // updating error
+            e = reference-y;
+            if ((abs(reference) <= 5) & (abs(e) < 10) ){
+                u = 0;
+            }
+
+            // sending the control signal to motor
+            usat =  constrain(u, -5 , 5);
+            voltsToMotor(usat);
+            
+            D = p3*D + p4*y;  
+            // updating integral action
+            if (p5 != 0) {
+                I = I + p5 * (reference - y) + p6 * (usat - u);
+            }
+        }
+        else if (typeControl == PID_CONTROLLER_SPEED_FILTER) {
+            y2 = p1*y2 + p2*(y-y1);
+            y1 = y1 + y2;
+            u = kp*(beta*reference  - y1) - p4*y2 + I; // control signal
+
+            e = reference - y1;
+            if ((abs(reference) <= 5) & (abs(e) < 10) ){
+                u = 0;
+            }
+
+            //saturated control signal
+            usat =  constrain(u, -5 + deadzone, 5 - deadzone);
+            voltsToMotor(compDeadZone(usat, deadzone));
+
+            if (p3!= 0) {
+                I = I + p3 * e + p5 * (usat - u);
+            }
+
         }
 
-        // sending the control signal to motor
-        usat =  constrain(u, -5 , 5);
-        voltsToMotor(usat);
-        
-        D = p3*D + p4*y;  
-        // updating integral action
-        if (p5 != 0) {
-            I = I + p5 * (reference - y) + p6 * (usat - u);
-        }
         //The task is suspended while awaiting a new sampling time
         vTaskDelayUntil(&xLastWakeTime, taskPeriod);
         np +=1;
@@ -162,15 +188,13 @@ static void controlPidTask(void *pvParameters) {
     /* this function computes a two parameter PID control with Antiwindup
      See Astrom ans Murray
     */
-    static bool led_status = false;
     const TickType_t taskPeriod = (pdMS_TO_TICKS(1000*h));
 
-    float P;       //  proportional action
-    float D;       //  derivative action
-
     /** state variables for the PID */
-    static float y_ant = 0;      //  past output
     static float I = 0;          // Integral action
+    static float D;       //  derivative action
+    static float y2;
+    static float y1;
     float e;
     float v;
 
@@ -188,34 +212,61 @@ static void controlPidTask(void *pvParameters) {
             encoderMotor.clearCount();
             encoderPot.clearCount();
             reset_int = false;
-            y_ant = 0;           
+            y1 = 0;           
             continue;
         }
+
         y = encoderMotor.getCount() * pulses2degrees;
         // computing the current reference depending on the current command
         computeReference();
+     
 
-        u = p1*reference  - p2*y + D + I; // control signal
-        e = reference - y;
-        v = (y - y_ant)/h;
-        // for the default control we allow to relax the system with zero control signal
-        if ((codeTopic == DEFAULT_TOPIC ) & (abs(e) <= 0.25) & (abs(v) <= 10)){
-            u=0;
-             }
+        if (typeControl == PID_CONTROLLER) {
+            u = p1*reference  - p2*y + D + I; // control signal            
+            v = (y - y1)/h;
+            e = reference - y;
+            // for the default control we allow to relax the system with zero control signal
+            if ((codeTopic == DEFAULT_TOPIC ) & (abs(e) <= 0.25) & (abs(v) <= 10)){
+                u=0;
+                }
 
-        //saturated control signal
-        usat =  constrain(u, -5 + deadzone, 5 - deadzone);
-        voltsToMotor(compDeadZone(usat, deadzone));
+            //saturated control signal
+            usat =  constrain(u, -5 + deadzone, 5 - deadzone);
+            voltsToMotor(compDeadZone(usat, deadzone));
         
-        // updating derivative action
-        D = p3*D + p4*y;  
+            // updating derivative action
+            D = p3*D + p4*y;  
 
-        // updating integral action
-        if (p5!= 0) {
-            I = I + p5 * e + p6 * (usat - u);
-        }
+            // updating integral action
+        
+            if (p5!= 0) {
+                I = I + p5 * e + p6 * (usat - u);
+            }
+            y1 = y;
+        } 
+        else if (typeControl == PID_CONTROLLER_FILTER) {
 
-        y_ant = y;
+            y2 = p1*y2 + p2*(y-y1);
+            y1 = y1 + y2;
+            u = kp*(beta*reference  - y1) - p4*y2 + I; // control signal
+
+
+            e = reference - y1;
+            // for the default control we allow to relax the system with zero control signal
+            if ((codeTopic == DEFAULT_TOPIC ) & (abs(e) <= 0.25) & (abs(y2) <= 10)){
+                u=0;
+                }
+
+            //saturated control signal
+            usat =  constrain(u, -5 + deadzone, 5 - deadzone);
+            voltsToMotor(compDeadZone(usat, deadzone));
+
+            if (p3!= 0) {
+                I = I + p3 * e + p5 * (usat - u);
+            }
+        }   
+
+    
         if (reset_int) {I=0;}
         //The task is suspended while awaiting a new sampling time
         vTaskDelayUntil(&xLastWakeTime, taskPeriod);  
