@@ -11,8 +11,8 @@ b = numvec(G)[1][1]
 
 ## Diseño por localización de polos
 # Frecuencia natural y factos de amortiguamiento
-ωn=15
-ζ = 0.7
+ωn = 15
+ζ = .7
 # calculo de las constantes
 Kp = (2*ζ*ωn-a)/b
 Ki = ωn^2/b
@@ -23,8 +23,8 @@ set_pid(sys;  kp=Kp, ki=Ki, kd=0, beta=0, output=:speed, Tf=0.005)
 result = step_closed(sys; r0 = 00, r1 =400,  t0 = 1.5, t1 =2);
 stepinfo(result,T)
 
-## Ahora diseñamos un PI para velocidad con Loopshaping, 
 
+## Ahora diseñamos un PI para velocidad con Loopshaping, 
 
 ωgc = 15
 # Note que incluimos el retardo del muestreo digital, por lo cual se requiere 
