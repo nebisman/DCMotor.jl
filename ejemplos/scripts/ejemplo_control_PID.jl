@@ -1,6 +1,4 @@
 
-
-
 # definicion del sistema
 using DCMotor
 sys = MotorSystem();

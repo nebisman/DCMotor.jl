@@ -6,15 +6,15 @@ G = tf(sys, :speed)
 
 ## Diseño por localización de polos
 # Frecuencia natural y factos de amortiguamiento
-ωn = 15
+ωn = 12
 ζ = .7
 s = tf("s")
 T= ωn^2/(s^2 + 2*ζ*ωn*s + ωn^2)
 
 # calculo de los coeficientes del PIas constantes
 _, Kp, Ki = placePI(G, ωn, ζ; form=:parallel)
-set_pid(sys;  kp=Kp, ki=Ki, kd=0, beta=0, output=:speed, Tf=0.005)
-result = step_closed(sys; r0 = 00, r1 =400,  t0 = 1.5, t1 =2);
+set_pid(sys;  kp=Kp, ki=Ki, kd=0, beta=0, output=:speed)
+result = step_closed(sys; r0 = 00, r1 =300,  t0 = 1.5, t1 =2);
 stepinfo(result,T)
 
 
