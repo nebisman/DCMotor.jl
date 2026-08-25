@@ -45,6 +45,7 @@ makedocs(;
                 "`set_reference`" => "funciones/control/set_reference.md",
                 "`set_pid`" => "funciones/control/set_pid.md",
                 "`set_controller`" => "funciones/control/set_controller.md",
+                "`set_ss_controller`" => "funciones/control/set_ss_controller.md",
                 "`step_closed`" => "funciones/control/step_closed.md",
                 "`stairs_closed`" => "funciones/control/stairs_closed.md",
                 "`profile_closed`" => "funciones/control/profile_closed.md",
