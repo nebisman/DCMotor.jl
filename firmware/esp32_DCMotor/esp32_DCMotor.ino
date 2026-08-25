@@ -224,7 +224,7 @@ static void controlPidTask(void *pvParameters) {
             v = (y - y1)/h;
             e = reference - y;
             // for the default control we allow to relax the system with zero control signal
-            if ((codeTopic == DEFAULT_TOPIC ) & (abs(e) <= 0.25) & (abs(v) <= 10)){
+            if ((abs(e) <= 0.13) & (abs(v) <= 10)){
                 u=0;
                 }
 
@@ -250,7 +250,7 @@ static void controlPidTask(void *pvParameters) {
 
             e = reference - y1;
             // for the default control we allow to relax the system with zero control signal
-            if ((codeTopic == DEFAULT_TOPIC ) & (abs(e) <= 0.25) & (abs(y2) <= 10)){
+            if ((abs(e) <= 0.13) & (abs(y2) <= 10)){
                 u=0;
                 }
 
@@ -325,7 +325,7 @@ float computeController(float limit, bool type){
         }
         v = (y - y_ant) / h;
 
-        if ((abs(e) <= 0.25) & (abs(v) <= 10) ){
+        if ((abs(e) <= 0.13) & (abs(v) <= 10) ){
                 control = 0;
             }
      
@@ -380,8 +380,6 @@ static void generalControlTask(void *pvParameters) {
         else if (typeControl == GENERAL_CONTROLLER_2P) {
             u = computeController(5-deadzone, true);
         }
-
-
 
         // Compensation of dead zone for the DC motor
         usat = compDeadZone(u, deadzone);
@@ -443,6 +441,75 @@ static void speedGenControlTask(void *pvParameters) {
         np +=1;
     }
 }
+
+
+static void stateControlTask(void *pvParameters) {
+    /* this function computes a state controller with estimation
+    */
+    const TickType_t taskPeriod = (pdMS_TO_TICKS(1000*h));
+
+    /** state variables for the PID */
+    static float x1 = 0;          // Integral action
+    static float x2 = 0;       //  derivative action
+    static float x1n = 0;
+    static float x2n= 0;
+    static float z = 0;
+    float e;
+
+
+
+    for (;;) {
+        TickType_t xLastWakeTime = xTaskGetTickCount();
+        // at start we reset the integral action and the state variables
+        // when receiving a new command
+        if (reset_int) {
+             if (codeTopic==USER_SYS_STAIRS_CLOSED_INT || codeTopic==USER_SYS_PROFILE_CLOSED_INT){
+                 vTaskDelay(DELAY_STAIRS);             
+            }
+            np = 0;
+            encoderMotor.clearCount();
+            encoderPot.clearCount();
+            reset_int = false;
+            x1 = 0;
+            x2 = 0;  
+            z=0;
+            x1n=0;
+            x2n=0;
+
+            continue;
+        }
+
+        y = encoderMotor.getCount() * pulses2degrees;
+        // computing the current reference depending on the current command
+        computeReference();
+
+        u = beta*reference - K[2]*z - K[0]*x1 - K[1]*y;
+        e = reference - y; 
+        if ((abs(e) <= 0.13) & (abs(x1) <= 5)){
+                u=0;
+                }    
+
+        //saturated control signal
+        usat =  constrain(u, -5 + deadzone, 5 - deadzone);
+        voltsToMotor(compDeadZone(usat, deadzone));
+           
+        //estimador de estado
+        x1n = A[0][0]*x1 + A[0][1]*x2 + B[0][0] * u + B[0][1] * y;
+        x2n = A[1][0]*x1 + A[1][1]*x2 + B[1][0] * u + B[1][1] * y;
+        x1 = x1n;
+        x2 = x2n;
+       
+        //actualizacion de la integral
+        if (K[2]!=0){
+            z = z + h*e + p6 * (usat - u);
+        }    
+        //The task is suspended while awaiting a new sampling time
+        vTaskDelayUntil(&xLastWakeTime, taskPeriod);  
+        np +=1;     
+                
+    }
+}
+
 
 
 
@@ -636,6 +703,19 @@ void setup() {
             &h_controlPidTask,
             CORE_CONTROL
     );
+
+
+        // Creating the task for PID control in core 0.
+    xTaskCreatePinnedToCore(
+            stateControlTask, // This is the control routine
+            "PID control",
+            8192,
+            NULL,
+            19,
+            &h_stateControlTask,
+            CORE_CONTROL
+    );
+    vTaskSuspend(h_stateControlTask);
 
 
     

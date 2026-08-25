@@ -195,6 +195,7 @@ mutable struct MotorSystem
             "prbs_open"     => "/prbs_open",
             "step_open"     => "/step_open",
             "set_gencon"    => "/set_gencon",
+            "set_sscon"     => "/set_sscon",                              
             "prof_closed"   => "/prof_closed",
         )
         new(port, bauds, nothing, topics,

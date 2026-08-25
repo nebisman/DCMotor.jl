@@ -115,7 +115,6 @@ function set_pid(sys::MotorSystem;
                   output::Symbol = :angle, deadzone::Real = get_deadzone())
     
     
-    
     h = SAMPLING_TIME
     
     if Tf === nothing     
@@ -307,6 +306,162 @@ function set_controller(sys::MotorSystem, controller;
     println("Controlador cargado en Motor")
     return nothing
 end
+
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  set_ss_controller  (controlador de realimentación de estados con observador)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+"""
+    set_ss_controller(sys::MotorSystem, K; L=[...], beta=0.0, deadzone=get_deadzone())
+
+Programa un controlador de realimentación de estados con observador en la
+plataforma DCMotor, como el mostrado en la siguiente figura:
+
+![Controlador en espacio de estados](../../assets/state_controller.png)
+
+El observador estima la velocidad angular ``\\hat x_1`` a partir de la señal
+de control ``u`` y del ángulo medido ``y``, usando la ganancia `L`. La ley de
+control implementada es
+
+``u = \\beta r - k_1 \\hat x_1 - k_2 y - k_3 z``
+
+donde ``z`` es la acción integral sobre el error de referencia ``r-y``
+
+# Argumentos
+- `sys::MotorSystem`: objeto que representa la plataforma DCMotor.
+- `K`: vector (o matriz fila) de ganancias de realimentación de estado,
+  ``K=[k_1\\ k_2]`` o ``K=[k_1\\ k_2\\ k_3]``.
+  - Si `K` tiene longitud 2, el controlador no incluye acción integral
+    (``k_3=0``) y, a menos que se indique explícitamente, `beta` se fija en 1.
+  - Si `K` tiene longitud 3, el controlador incluye la acción integral mediante la 
+    ganancia ``k_3`` y, a menos que se indique explícitamente, `beta` se fija
+    en 0.
+
+# Argumentos de palabra clave
+- `L`: ganancia del observador de estado, como vector. Por
+  defecto usa una ganancia calculada para el modelo nominal del DCMotor, usando un 
+  filtro de Ksalman.
+- `beta::Real=0.0`: ponderación del punto de ajuste (*setpoint weighting*)
+  aplicada directamente sobre la referencia. Ver la nota sobre `K` para el
+  valor por defecto efectivo.
+- `deadzone::Real`: zona muerta de la señal de control, en voltios. Por
+  defecto, usa la encontrada por el modelo estático.
+
+# Retorna
+- `nothing`. Imprime un mensaje de confirmación en consola.
+
+# Notas
+- El observador se discretiza usando el método bilineal (Tustin) con un
+  periodo de muestreo de 0.02 segundos.
+- Las ganancias `K` y `L` pueden diseñarse, por ejemplo, por asignación de
+  polos (`place`) o mediante un regulador LQR y un observador de Kalman
+  (`lqr`, `kalman`) sobre el modelo en espacio de estados `ss(sys)`.
+
+# Ejemplos
+## Ejemplo 1: realimentación de estados por asignación de polos (sin acción integral)
+Supongamos que queremos ubicar los polos de lazo cerrado del **DCMotor** en
+``-10\\pm10i``, sin acción integral:
+
+```julia
+using DCMotor
+sys = MotorSystem();
+G = ss(sys)
+K = place(G, [-10+10im, -10-10im])
+set_ss_controller(sys, K)
+
+    "Controlador cargado en Motor"
+```
+
+## Ejemplo 2: realimentación de estados con acción integral
+Supongamos ahora que queremos incluir acción integral para garantizar error
+de estado estacionario nulo, diseñando las ganancias con un regulador LQR
+sobre el sistema aumentado:
+
+```julia
+using DCMotor
+sys = MotorSystem();
+G = ss(sys)
+A, B, C = G.A, G.B, G.C
+Aa = [A [0.0, 0.0]; -C 0.0]
+Ba = [B; 0.0]
+K = lqr(Continuous, Aa, Ba, diagm([1.0, 1.0, 1.0]), 1.0)
+L = kalman(G, [1.0 0; 0 10], 10)
+set_ss_controller(sys, K; L=L)
+
+    "Controlador cargado en Motor"
+```
+"""
+function set_ss_controller(sys::MotorSystem,  K; L=[ 0.00016135098 1.0001613379711143],
+    beta::Real=0.0, deadzone::Real=get_deadzone())
+          
+    h = SAMPLING_TIME
+     
+    size_L = size(L)
+
+    if size_L == (1,2)
+        L = Matrix(L')
+    elseif size_L == (2,1) 
+        # ya tiene la forma correcta (vector columna)
+    else
+        error("El observador debe ser un vector de tamaño 2")
+    end
+
+    # en este caso tenemos un controlador VE sin accion integral
+
+    sis_ss=ss(sys)
+    A = sis_ss.A
+    B = sis_ss.B
+    C = sis_ss.C
+
+    # matrices del observador
+
+
+
+    Ao = A-L*C
+    Bo = [B L]
+    Co = [1 0; 0 1]
+    Do = Co
+    
+    obs = ss(Ao,Bo,Co,Do)    
+    ob_dis = c2d(obs, SAMPLING_TIME, :tustin)
+
+    type_control = 8
+    Ad = ob_dis.A
+    Bd = ob_dis.B
+
+    lenk = length(K)
+
+
+
+    if lenk === 2
+        if beta === 0.0
+            beta = 1.0
+        end
+        K = [K 0.0]
+    elseif lenk === 3
+        beta = 0.0    
+    else
+        error("La longitud del vector K debe ser 2 o 3")
+    end
+
+    payload = Dict(  
+        "A"    =>  matrix2hex(Ad),
+        "B"    =>  matrix2hex(Bd),
+        "K"    =>  matrix2hex(K),
+        "beta" =>  float2hex(beta),
+        "typeControl" => long2hex(8),
+        "deadzone"    => float2hex(deadzone),
+    )
+    connect!(sys)
+    send_command!(sys, "set_sscon", payload)
+    set_reference(sys, 0)
+    println("Controlador cargado en Motor")
+    return nothing
+end
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

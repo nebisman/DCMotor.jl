@@ -64,6 +64,8 @@
 #define USER_SYS_STEP_OPEN           "/step_open"
 #define USER_SYS_SET_GENCON          "/set_gencon"
 #define USER_SYS_PROFILE_CLOSED      "/prof_closed"
+#define USER_SYS_SET_SSCON           "/set_sscon"
+                                     
 
 /** Integer definitions of topics to avoid comparison with strings, which is more expensive
     in terms of computation */
@@ -83,6 +85,7 @@
 #define GENERAL_CONTROLLER_SPEED_2P    5
 #define PID_CONTROLLER_FILTER          6
 #define PID_CONTROLLER_SPEED_FILTER    7
+#define SS_CONTROLLER                  8
 
 
 
@@ -169,7 +172,9 @@ TaskHandle_t h_stepOpenTask;
 TaskHandle_t h_speedControlPidTask;
 TaskHandle_t h_speedGenControlTask;
 TaskHandle_t h_buttonTask;
-TaskHandle_t h_serialCommandTask;  // handle used by the UART ISR to wake the command task
+TaskHandle_t h_serialCommandTask; 
+TaskHandle_t h_stateControlTask;
+// handle used by the UART ISR to wake the command task
 
 // PID control default parameters
 float p1 = 0.2164;
@@ -224,7 +229,7 @@ float B [MAX_ORDER][2] = {0};    // Controller's B matrix
 float C [MAX_ORDER] = {0};       // Controller's C matrix
 float D [2] = {0};        // Controller's D matrix
 float L [MAX_ORDER] = {0};       // L is the gain matrix for the antiwindup observer
-
+float K [3] = {0};  
 
 
 // Vectors of values and times for storing  the edges of
@@ -432,6 +437,7 @@ void suspendAllTasks(){
     vTaskSuspend(h_controlPidTask);
     vTaskSuspend(h_speedControlPidTask);
     vTaskSuspend(h_speedGenControlTask);
+    vTaskSuspend(h_stateControlTask);
     vTaskSuspend(h_identifyTask);
     vTaskSuspend(h_stepOpenTask);
     vTaskSuspend(h_buttonTask);
@@ -464,6 +470,9 @@ void resumeControl(){
             break;
         case PID_CONTROLLER_SPEED_FILTER:
             vTaskResume(h_speedControlPidTask);
+            break;
+        case SS_CONTROLLER:
+            vTaskResume(h_stateControlTask);
             break;
     }
 }
@@ -560,6 +569,29 @@ void  onCommandReceived(char* lastTopic, byte* lastPayload) {
         defaultControl();
     }
 
+    else if (strstr(lastTopic, USER_SYS_SET_SSCON)) {
+        deserializeJson(doc, lastPayload);
+        order = 2; 
+        p6 = 1/0.99;   
+        const char *hex_A = doc["A"];
+        const char *hex_B = doc["B"]; 
+        const char *hex_K = doc["K"];
+        typeControl  = hex2Long((const char *) doc["typeControl"]);
+        deadzone =  hex2Float((const char *) doc["deadzone"]);
+        beta = hex2Float((const char *) doc["beta"]);
+
+        hexStringToMatrix( *A, hex_A, order, order, MAX_ORDER);
+        hexStringToMatrix( *B, hex_B, order, 2, 2);
+        hexStringToFloatArray(K, hex_K, 3);
+        
+        #ifdef DEBUG
+        printf("PID parameters settled:\n    kp=%0.3f\n    ki=%0.3f\n    kd=%0.3f\n    N=%0.3f\n    Beta=%0.3f\n"
+               "    Dead Zone=%0.3f\n", kp, ki, kd, N, beta, deadzone);
+        printf("control code: %d\n", typeControl);
+        #endif
+
+        defaultControl();
+    }
     else if (strstr(lastTopic, USER_SYS_SET_REF)) {
         deserializeJson(doc, lastPayload);
         reference = hex2Float((const char *) doc["reference"]);
@@ -676,6 +708,9 @@ void  onCommandReceived(char* lastTopic, byte* lastPayload) {
         resumeControl(); 
         vTaskResume(h_publishStateTask);
     }
+    
+
+
 }
 
 

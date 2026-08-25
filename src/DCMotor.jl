@@ -68,7 +68,7 @@ export send_command!, receive_frames!
 export get_last_model, speed_from_volts, volts_from_speed
 
 # Funciones de control (controlsys)
-export set_reference, set_pid, set_controller
+export set_reference, set_pid, set_controller, set_ss_controller
 export step_closed, stairs_closed, profile_closed, stepinfo
 
 # Funciones de identificación (identsys)
