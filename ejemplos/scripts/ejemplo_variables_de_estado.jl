@@ -14,7 +14,7 @@ T = ss(A-B*K, B, C,0)
 
 beta=1/dcgain(T)[1]
 T = T*beta
-set_ss_controller(sys, K1, beta=beta)
+set_ss_controller(sys, K, beta=beta)
 result = step_closed(sys; r0 = 0, r1 = 50,  t0 = 1.5, t1 =2) 
 stepinfo(result,T)
 
