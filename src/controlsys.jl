@@ -368,31 +368,42 @@ Supongamos que queremos ubicar los polos de lazo cerrado del **DCMotor** en
 ```julia
 using DCMotor
 sys = MotorSystem();
-G = ss(sys)
-K = place(G, [-10+10im, -10-10im])
-set_ss_controller(sys, K)
+mot = ss(sys)
 
-    "Controlador cargado en Motor"
+# diseñamos e implmentamos el controlador
+K = place(mot, [-10+10im, -10-10im])
+set_ss_controller(sys, K)
+A, B, C ,D = ssdata(mot)
+T = ss(A-B*K, B, C,0) 
+beta=1/dcgain(T)[1]
+T = T*beta
+
+# ahora lo probamos
+set_ss_controller(sys, K1, beta=beta)
+result = step_closed(sys; r0 = 0, r1 = 50,  t0 = 1.5, t1 =2) 
 ```
 
 ## Ejemplo 2: realimentación de estados con acción integral
 Supongamos ahora que queremos incluir acción integral para garantizar error
-de estado estacionario nulo, diseñando las ganancias con un regulador LQR
-sobre el sistema aumentado:
+de estado estacionario nulo, diseñando las ganancias sobre el sistema aumentado:
 
 ```julia
-using DCMotor
-sys = MotorSystem();
-G = ss(sys)
-A, B, C = G.A, G.B, G.C
-Aa = [A [0.0, 0.0]; -C 0.0]
-Ba = [B; 0.0]
-K = lqr(Continuous, Aa, Ba, diagm([1.0, 1.0, 1.0]), 1.0)
-L = kalman(G, [1.0 0; 0 10], 10)
-set_ss_controller(sys, K; L=L)
-
-    "Controlador cargado en Motor"
+Aa = [A [0, 0]; -C 0]
+Ba = [B; 0]
+polos =  [-10+10im, -10-10im, -14]; 
+Ka = place(Aa, Ba, polos)
+set_ss_controller(sys, Ka)
+result2 = step_closed(sys; r0 = 0, r1 = 100,  t0 = 1.5, t1 =2) 
 ```
+## Ejempo 3: observador para la velocidad con filtro de Kalman
+```julia
+Q=[1.0 0 ; 0 1]
+R=1
+L1 = kalman(mot,Q,R)
+set_ss_controller(sys, Ka; L = L1)
+result3 = step_closed(sys; r0 = 0, r1 = 100,  t0 = 1.5, t1 =3) 
+```
+
 """
 function set_ss_controller(sys::MotorSystem,  K; L=[ 0.00016135098 1.0001613379711143],
     beta::Real=0.0, deadzone::Real=get_deadzone())
