@@ -343,7 +343,7 @@ donde ``z`` es la acción integral sobre el error de referencia ``r-y``
 # Argumentos de palabra clave
 - `L`: ganancia del observador de estado, como vector. Por
   defecto usa una ganancia calculada para el modelo nominal del DCMotor, usando un 
-  filtro de Ksalman.
+  filtro de Kalman.
 - `beta::Real=0.0`: ponderación del punto de ajuste (*setpoint weighting*)
   aplicada directamente sobre la referencia. Ver la nota sobre `K` para el
   valor por defecto efectivo.
