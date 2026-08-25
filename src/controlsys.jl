@@ -115,7 +115,6 @@ function set_pid(sys::MotorSystem;
                   output::Symbol = :angle, deadzone::Real = get_deadzone())
     
     
-    
     h = SAMPLING_TIME
     
     if Tf === nothing     
@@ -307,6 +306,52 @@ function set_controller(sys::MotorSystem, controller;
     println("Controlador cargado en Motor")
     return nothing
 end
+
+
+
+
+function set_ss_controller(sys::MotorSystem,  K; L = [ 0.00016135098 1.0001613379711143],
+    deadzone::Real = get_deadzone())
+          
+    h = SAMPLING_TIME
+    m , n = size(L)
+   
+    if m===1
+        L = L'
+    end 
+
+    sis_ss=ss(sys)
+    A = sis_ss.A
+    B = sis_ss.B
+    C = sis_ss.C
+
+    # matrices del observador
+    Ao = A-L*C
+    Bo = [B L]
+    Co = [1 0; 0 1]
+    Do = Co
+    
+    obs = ss(Ao,Bo,Co,Do)    
+    ob_dis = c2d(obs, SAMPLING_TIME, :tustin)
+
+    type_control = 8
+    Ad = ob_dis.A
+    Bd = ob_dis.B
+
+    payload = Dict(  
+        "A"    =>  matrix2hex(Ad),
+        "B"    =>  matrix2hex(Bd),
+        "K"    =>  matrix2hex(K),
+        "typeControl" => long2hex(8),
+        "deadzone"    => float2hex(deadzone),
+    )
+    connect!(sys)
+    send_command!(sys, "set_sscon", payload)
+    set_reference(sys, 0)
+    println("Controlador cargado en Motor")
+    return nothing
+end
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
