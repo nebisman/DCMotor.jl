@@ -444,8 +444,7 @@ static void speedGenControlTask(void *pvParameters) {
 
 
 static void stateControlTask(void *pvParameters) {
-    /* this function computes a two parameter PID control with Antiwindup
-     See Astrom ans Murray
+    /* this function computes a state controller with estimation
     */
     const TickType_t taskPeriod = (pdMS_TO_TICKS(1000*h));
 
@@ -484,7 +483,7 @@ static void stateControlTask(void *pvParameters) {
         // computing the current reference depending on the current command
         computeReference();
 
-        u = -K[2]*z - K[0]*x1 - K[1]*y;
+        u = beta*reference - K[2]*z - K[0]*x1 - K[1]*y;
         e = reference - y; 
         if ((abs(e) <= 0.13) & (abs(x1) <= 5)){
                 u=0;
@@ -501,8 +500,9 @@ static void stateControlTask(void *pvParameters) {
         x2 = x2n;
        
         //actualizacion de la integral
-        z = z + h*e + p6 * (usat - u);
-
+        if (K[2]!=0){
+            z = z + h*e + p6 * (usat - u);
+        }    
         //The task is suspended while awaiting a new sampling time
         vTaskDelayUntil(&xLastWakeTime, taskPeriod);  
         np +=1;     

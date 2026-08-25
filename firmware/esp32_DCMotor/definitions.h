@@ -576,9 +576,9 @@ void  onCommandReceived(char* lastTopic, byte* lastPayload) {
         const char *hex_A = doc["A"];
         const char *hex_B = doc["B"]; 
         const char *hex_K = doc["K"];
-
         typeControl  = hex2Long((const char *) doc["typeControl"]);
         deadzone =  hex2Float((const char *) doc["deadzone"]);
+        beta = hex2Float((const char *) doc["beta"]);
 
         hexStringToMatrix( *A, hex_A, order, order, MAX_ORDER);
         hexStringToMatrix( *B, hex_B, order, 2, 2);
