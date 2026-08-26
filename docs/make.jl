@@ -47,9 +47,9 @@ makedocs(;
                 "`set_controller`" => "funciones/control/set_controller.md",
                 "`set_ss_controller`" => "funciones/control/set_ss_controller.md",
                 "`step_closed`" => "funciones/control/step_closed.md",
-                "`stairs_closed`" => "funciones/control/stairs_closed.md",
-                "`profile_closed`" => "funciones/control/profile_closed.md",
                 "`stepinfo`" => "funciones/control/stepinfo.md",
+                "`stairs_closed`" => "funciones/control/stairs_closed.md",
+                "`profile_closed`" => "funciones/control/profile_closed.md",                
             ],
             "Diseño de controladores" => [
                 "`cont1dof`" => "funciones/diseno/cont1dof.md",
