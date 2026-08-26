@@ -40,8 +40,8 @@ stepinfo(result1,T1)
 Q=[1.0 0 ; 0 1]
 R=1
 L1 = kalman(mot,Q,R)
-QK = diagm([.00100, 1.0, 100])
-RK = diagm([100])
+QK = ([.00100 0 0; 0 1.0 0; 0 0  1000])
+RK = 1000
 Klqr = lqr(Continuous,Aa, Ba, QK, RK)
 T2 = ss(Aa-Ba*Klqr, Ba, [C 0], [0])
 den = denvec(tf(T2))[1] 
