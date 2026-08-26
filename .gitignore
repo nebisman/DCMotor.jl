@@ -6,3 +6,4 @@ docs/ejemplos/
 docs/assets/motor.svg
 firmware/esp32_DCMotor/build/
 datafiles/
+Manifest.toml
