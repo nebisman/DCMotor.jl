@@ -6,7 +6,7 @@ conectar la plataforma se obtiene un error de permisos (`Permission denied`),
 añada su usuario a dicho grupo, de la siguiente manera:
 
 ```bash
-sudo usermod -aG dialout Mi_Usuario
+sudo usermod -a -G dialout Mi_Usuario
 ```
 
 En donde `Mi_Usuario` representa su usuario actual en linux. Luego cierre sesión y vuelva a iniciarla (o reinicie el equipo) para que el
