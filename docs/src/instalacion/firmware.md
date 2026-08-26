@@ -2,7 +2,7 @@
 
 ```@raw html
 <div style="font-size: 1em; font-weight: bold; color: rgba(202, 60, 50, 1); background-color: #e9ddaf; border: 4px solid rgba(202, 60, 50, 1); border-radius: 8px; padding: 1em; margin: 1em 0;">
-⚠️ La carga de firmware solo es necesaria si la placa está desconfigurada y el controlador por defecto no funciona. También en el caso en que el firmware esté desactualizado. <code>UNDCMotor</code>.
+⚠️ La carga de firmware solo es necesaria una vez si el controlador por defecto no funciona. También en el caso en que el firmware de la plataforma <code>UNDCMotor</code> deba ser actualizado.
 </div>
 ```
 # Instalación del Firmware

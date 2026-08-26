@@ -17,26 +17,12 @@ componentes para controlar un servomotor DC por medio de un microcontrolador ESP
   <img src="assets/motor.png" alt="Plataforma DCMotor" width="50%">
 </p>
 ```
+### Instalación
+
+- Instale el firmware de la placa con base en las instrucciones de  [Instalación del Firmware](@ref)
+
+- Instale el paquete con base en las instrucciones de [Instalación del paquete](@ref). 
 
 
-Para instalar el paquete y el firmware asociado, vea la sección [Instalación del
-paquete](@ref). Para el listado completo de funciones, ver el
-panel izquierdo, en la sección **Funciones**.
-
-### Introducción rápida
-
-Instale el paquete directamente desde este repositorio, así:
-
-```julia
-using Pkg
-Pkg.add(url="https://github.com/nebisman/DCMotor.jl")
-```
-
-Luego, para empezar a usarlo, ejecute el siguiente código:
-
-```julia
-using DCMotor
-sys = MotorSystem();
-set_reference(sys,360)
-```
-El sistema debe reaccionar y mostrar el cambio a una referencia de $$360^o$$ en ángulo.
+### Funciones
+- Para el listado completo de funciones, ver el panel izquierdo.

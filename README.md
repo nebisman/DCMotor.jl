@@ -23,21 +23,3 @@ Adicionalmente, las constantes de tiempo están muy sintonizadas con la percepci
 Las instrucciones de instalación del paquete, sus funciones y la instalación del *firmmare* de la plataforma se encuentran en la
 [documentación](https://nebisman.github.io/DCMotor.jl). 
 
-
-### Introducción rápida
-
-Instale el paquete directamente desde este repositorio, así:
-
-```julia
-using Pkg
-Pkg.add(url="https://github.com/nebisman/DCMotor.jl")
-```
-
-Luego, para empezar a usarlo, ejecute el siguiente código:
-
-```julia
-using DCMotor
-sys = MotorSystem();
-set_reference(sys,360)
-```
-El sistema debe reaccionar y mostrar el cambio a una referencia de $$360^o$$ en ángulo.
