@@ -1,4 +1,4 @@
-ControlSystems.jl is licensed under the MIT License:
+DCMotor.jl is licensed under the MIT License:
 
 > Copyright (c) 2024-2026: Leonardo Bermeo and Hernando Díaz :
 
