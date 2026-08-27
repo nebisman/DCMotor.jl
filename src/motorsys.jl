@@ -556,7 +556,8 @@ end
     ss(sys::MotorSystem, output::Symbol=:angle)
 
 Retorna la realización en espacio de estado del modelo nominal (sin retardo)
-de la plataforma DCMotor. 
+de la plataforma DCMotor, estimada
+previamente estimada con [`get_model_step`](@ref) o [`get_model_prbs`](@ref).
 
 # Argumentos
 - `sys::MotorSystem`: objeto que representa la plataforma.
@@ -622,7 +623,7 @@ al aplicarle un voltaje constante especificado en la variable `volts`.
 
 Para ello usa el modelo estático lineal a trozos:
 
-``\\qquad \\omega_{ee} = K\\,u + \\text{sign}(\\omega_{ee})\\, b``, 
+``\\qquad \\omega_{ee} = K\\,u + \\text{sign}(\\text{\\texttt{volts}})\\, b``, 
 
 el cual debe haber sido previamente ajustado al correr [`get_static_model`](@ref).
 
@@ -674,7 +675,7 @@ Estima el voltaje constante necesario para que el motor DC alcance, en
 estado estacionario, la velocidad angular indicada en la variable `speed` (en °/s). Es la función
 inversa de [`speed_from_volts`](@ref) y usa el mismo modelo estático lineal a trozos dado por:
 
-``\\qquad u=\\dfrac{\\omega_{ee}- \\text{sign}(\\omega_{ee})\\,b}{K}``
+``\\qquad \\text{\\texttt{speed}} =\\dfrac{\\omega_{ee}- \\text{sign}(\\omega_{ee})\\,b}{K}``
 
 # Argumentos
 - `sys::MotorSystem`: objeto que representa la plataforma
