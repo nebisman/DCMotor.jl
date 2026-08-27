@@ -621,9 +621,9 @@ end
 Estima la velocidad angular de estado estacionario (en °/s) que alcanza el motor DC
 al aplicarle un voltaje constante especificado en la variable `volts`.
 
-Para ello usa el modelo estático lineal a trozos:
+Para ello usa el modelo estático lineal a trozos (obtenido con [`get_static_model`](@ref)):
 
-``\\qquad \\omega_{ee} = K\\,u + \\text{sign}(\\text{\\texttt{volts}})\\, b``, 
+``\\qquad \\text{\\texttt{speed}} = K\\cdot \\text{\\texttt{volts}} + \\text{sign}(\\text{\\texttt{volts}})\\, b``, 
 
 el cual debe haber sido previamente ajustado al correr [`get_static_model`](@ref).
 
@@ -673,9 +673,9 @@ end
 
 Estima el voltaje constante necesario para que el motor DC alcance, en
 estado estacionario, la velocidad angular indicada en la variable `speed` (en °/s). Es la función
-inversa de [`speed_from_volts`](@ref) y usa el mismo modelo estático lineal a trozos dado por:
+inversa de [`speed_from_volts`](@ref) y usa el mismo modelo estático lineal a trozos obtenido con [`get_static_model`](@ref)
 
-``\\qquad \\text{\\texttt{speed}} =\\dfrac{\\omega_{ee}- \\text{sign}(\\omega_{ee})\\,b}{K}``
+``\\qquad \\text{\\texttt{volts}} =\\dfrac{\\text{\\texttt{speed}}- \\text{sign}(\\text{\\texttt{speed}})\\,b}{K}``
 
 # Argumentos
 - `sys::MotorSystem`: objeto que representa la plataforma
