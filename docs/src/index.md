@@ -19,9 +19,9 @@ componentes para controlar un servomotor DC por medio de un microcontrolador ESP
 ```
 ### Instalación
 
-- Instale el firmware de la placa con base en las instrucciones de  [Instalación del Firmware](@ref)
+1. Instale el firmware de la placa con base en las instrucciones de  [Instalación del Firmware](@ref)
 
-- Instale el paquete con base en las instrucciones de [Instalación del paquete](@ref). 
+2. Instale el paquete con base en las instrucciones de [Instalación del paquete](@ref). 
 
 
 ### Funciones
