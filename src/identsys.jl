@@ -454,11 +454,12 @@ Luego, obtenga el modelo de ganancia estática así:
 uee, yee = get_static_model(sys);
 ```
 """
-function get_static_model(sys::MotorSystem; points::Int = 15)
+function get_static_model(sys::MotorSystem; points::Int = 20)
     timestep = 3.0
-    dz_points = 5
-    u_dz = range(0.15, 0.25,  length=dz_points)
-    u_pos = range(0.3,5, length = points-dz_points)
+    dz_points = 10
+
+    u_dz = range(0.25, 0.5,  length=dz_points)
+    u_pos = range(0.5,5, length = points-dz_points)
     u_all = vcat(u_dz  , u_pos )
   
 
