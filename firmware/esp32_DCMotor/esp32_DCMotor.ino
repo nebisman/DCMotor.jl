@@ -624,7 +624,7 @@ static void stepOpenTask(void *pvParameters) {
             reference = 0;
             encoderMotor.setCount(0);
             encoderPot.setCount(0);            
-            defaultControl();
+            //defaultControl();
 
         }
         vTaskDelayUntil(&xLastWakeTime, taskPeriod);
