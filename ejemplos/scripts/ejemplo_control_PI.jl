@@ -13,7 +13,7 @@ T= ωn^2/(s^2 + 2*ζ*ωn*s + ωn^2)
 
 # calculo de los coeficientes del PIas constantes
 _, Kp, Ki = placePI(G, ωn, ζ; form=:parallel)
-set_pid(sys;  kp=Kp, ki=Ki, kd=0, beta=0, output=:speed)
+set_pid(sys;  kp=Kp, ki=Ki, kd=0, beta=0, output=:speed, deadzone=0)
 result = step_closed(sys; r0 = 00, r1 =360,  t0 = 1.5, t1 =2);
 stepinfo(result,T)
 
