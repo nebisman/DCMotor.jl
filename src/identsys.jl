@@ -361,11 +361,16 @@ function _step_open_static(sys::MotorSystem, u1::Real,  t1::Real, uee::Vector{Fl
             legendfontsize = leg_size, fg_legend = "#d4aa00", markersize=3, linewidth=1)   
         end
 
-        label_1 = latexstring(@sprintf("u = %0.2f\\,\\,V", u1))
+        label_1 = latexstring(@sprintf("u = %0.3f\\,\\,V", u1))
+   
+
         pl_ins = plot(tv, yv, color="#00aad4", label="",
                 legendfontsize = leg_size, fg_legend= "#5fbcd3", linewidth=1.5)  
-        annotate!(pl_ins, 0.5, 750, text(label_1, 10, :green))
-                
+        annotate!(pl_ins, 0.5, 750, text(label_1, 10, :blue))
+        
+        if u1 < 0.5
+            annotate!(pl_ins, 1, 650, text("identificando zona muerta", 9, :green))
+        end    
                  
             
         plt = plot(pl_ins, pl_ee, layout=(1, 2), size=(900, 500),
@@ -454,35 +459,71 @@ Luego, obtenga el modelo de ganancia estática así:
 uee, yee = get_static_model(sys);
 ```
 """
-function get_static_model(sys::MotorSystem; points::Int = 20)
+function get_static_model(sys::MotorSystem; points::Int = 10)
     timestep = 3.0
     dz_points = 10
 
-    u_dz = range(0.25, 0.5,  length=dz_points)
-    u_pos = range(0.5,5, length = points-dz_points)
-    u_all = vcat(u_dz  , u_pos )
-  
 
 
     uee = Vector{Float64}()
     yee = Vector{Float64}()
 
     connect!(sys)
-  
-    for ui in u_all
-        yss = _step_open_static(sys, ui, timestep, uee, yee)  
 
+    # detectamos la zona muerta usando biseccion
+    a = 0.1 # intervalo inicial
+    b = 0.5  
+    f(x) = _step_open_static(sys, x, timestep, uee, yee) - 1;
+
+      
+    fa = -1.0 
+    fb = f(b) 
+    fc = 0
+
+    push!(uee, b)
+    push!(yee, fb) 
+
+    for i in range(1, 7)       
+        c  = (a + b) / 2
+        fc = f(c)
+
+        if (fc * fa < 0.0)
+            b = c             
+            fb = fc
+                       
+        else  
+            a = c                          
+            fa =  fc 
+        end     
+        push!(uee, c)
+        push!(yee, fc) 
+
+    end
+   
+    # la zona muerta se estima como el promedio de los extremos del intervalo final
+    zm = (a + b) / 2
+
+    uee = Vector{Float64}()
+    yee = Vector{Float64}()
+
+    push!(uee, zm)
+    push!(yee, abs(fc)) 
+
+
+    u_pos = range(zm + 0.2, 5, length = points)
+
+    for ui in u_pos
+        yss = _step_open_static(sys, ui, timestep, uee, yee) 
         uss = Float64(ui)        
         push!(uee, uss)
         push!(yee, yss)
-
     end
 
-     # ── Regresión lineal: yee = K*uee + b 
+     # Regresión lineal: yee = K*uee + b 
     
-    indices = findall(yee .> 2)
-    yee1 = yee[indices]
-    uee1 = uee[indices]
+
+    yee1 = yee[2:end]
+    uee1 = uee[2:end]
     
     A      = hcat(uee1, ones(length(uee1)))   # matriz de diseño [u 1]
     coeffs = A \ yee1                        # mínimos cuadrados
@@ -494,10 +535,10 @@ function get_static_model(sys::MotorSystem; points::Int = 20)
     R²     = 1 - sum((yee1 .- (K .* uee1 .+ b)).^2) /
                     sum((yee1 .- mean(yee1)).^2)
 
-    zm = uee1[1]
+   
 
      # Datos experimentales
-    datos = scatter(uee, yee,
+    datos = scatter(uee1, yee1,
         label="Datos experimentales",
          color=:green, marker=:circle, markersize=4, linewidth=1.5, opacity=0.7)
 
@@ -508,7 +549,7 @@ function get_static_model(sys::MotorSystem; points::Int = 20)
         label = mod_str,
         color="#0055d4", linewidth=1,  legendfontsize = leg_size,  linestyle=:dash)
     
-    scatter!(datos,  [zm], [0],
+    scatter!(datos,  [zm], [yee[1]],
         label="Zona muerta: $(@sprintf("%.2f",zm)) V",
         color=:red, marker=:square, markersize=4, linewidth=1.5)
     
@@ -524,7 +565,7 @@ function get_static_model(sys::MotorSystem; points::Int = 20)
     display(plt)
 
 
-    exp_data = hcat(uee1, yee1)
+    exp_data = hcat(uee, yee)
     open(_datafile("DCmotor_static_gain_response.csv"), "w") do io
             println(io, "u,y")
             for i in axes(exp_data, 1)
@@ -702,7 +743,7 @@ function get_model_step(sys::MotorSystem;
     # Gráfica
     #modelstr1 = latexstring(@sprintf("G(s) = \\frac{%.4f}{s + %.3f} \\quad (FIT=%.1f\\,\\%%)", b, a, r1))
 
-    model_str = latexstring(@sprintf("G(s) = \\frac{%.2f}{s + %.2f} e^{-%0.2f\\,s}", alpha, tau, L_val))
+    model_str = latexstring(@sprintf("G(s) = \\frac{%.2f}{%.3f\\,s+1} e^{-%0.2f\\,s}", alpha, tau, L_val))
 
     plt = plot(layout=(2, 1), size=(900, 550),
         title=["Modelo FOTD estimado para UNDCMotor" ""],
