@@ -881,12 +881,11 @@ function get_model_prbs(sys::MotorSystem;
     ym = y .- ymean_val
 
 
-    # Formatear entrada como matriz (1 × N) para lsim
-  
+    # Formatear entrada como matriz (1 × N) para lsim  
 
     na, nb = 1, 1 
     data = iddata(ym, um, SAMPLING_TIME)
-    data = prefilter(data,0, 12.5)  # Eliminar tendencia constante
+    data = prefilter(data,0, 12.5)  
      
     Gh = arx(data, na, nb, inputdelay=1, estimator = wtls_estimator(data.y, na, nb)) 
     G1 = d2c(Gh)
