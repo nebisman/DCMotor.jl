@@ -485,14 +485,12 @@ previamente con [`get_model_step`](@ref) o [`get_model_prbs`](@ref).
 - `output::Symbol=:angle`: variable de salida del modelo (`:angle` o `:speed`);
   ver la nota sobre `numpar` para las expresiones exactas.
 - `numpar::Int=2`: número de parámetros del modelo estático a usar.
-  + `numpar=2` (por defecto): modelo de un polo, leído de
-    `datafiles/DCmotor_fo_model_2p.csv` (generado por [`get_model_step`](@ref)
-    o por [`get_model_prbs`](@ref) con `numpar=2`):
+  + `numpar=2` (por defecto): modelo de un polo, estimado por [`get_model_step`](@ref)
+    o por [`get_model_prbs`](@ref) con `numpar=2`:
 
     ``:speed \\to G=\\dfrac{b}{s+a}, \\qquad :angle \\to G=\\dfrac{b}{s(s+a)}``
 
-  + `numpar=3`: modelo de dos polos, leído de `datafiles/DCmotor_fo_model_3p.csv`
-    (generado por [`get_model_prbs`](@ref) con `numpar=3`):
+  + `numpar=3`: modelo de dos polos, estimado por [`get_model_prbs`](@ref) con `numpar=3`:
 
     ``:speed \\to G=\\dfrac{b}{(s+a_1)(s+a_2)}, \\qquad :angle \\to G=\\dfrac{b}{s(s+a_1)(s+a_2)}``
 
@@ -505,7 +503,7 @@ es de una muestra (0.02s).
 # Ejemplos
 ```julia
 sys = MotorSystem();
-G_angle, L = get_last_model(sys)                          # modelo de 1 polo, salida de ángulo (por defecto)
+G_angle, L = get_last_model(sys)                           # modelo de 1 polo, salida de ángulo (por defecto)
 G_speed, L = get_last_model(sys; output=:speed, numpar=3)  # modelo de 2 polos, salida de velocidad angular
 ```
 """
@@ -557,13 +555,12 @@ previamente con [`get_model_step`](@ref) o [`get_model_prbs`](@ref).
 - `output::Symbol=:angle`: variable de salida del modelo (`:angle` o `:speed`);
   ver la nota sobre `numpar` para las expresiones exactas.
 - `numpar::Int=2`: número de parámetros del modelo. Con `numpar=2` (por
-  defecto) se usa el modelo de un polo estimado en
-  `datafiles/DCmotor_fo_model_2p.csv`:
+  defecto) se usa el modelo de un polo, dado por:
 
   ``:speed \\to G=\\dfrac{b}{s+a}, \\qquad :angle \\to G=\\dfrac{b}{s(s+a)}``
 
   Con `numpar=3` se usa el modelo de dos polos, estimado con
-  [`get_model_prbs`](@ref) (`numpar=3`) en `datafiles/DCmotor_fo_model_3p.csv`:
+  [`get_model_prbs`](@ref):
 
   ``:speed \\to G=\\dfrac{b}{(s+a_1)(s+a_2)}, \\qquad :angle \\to G=\\dfrac{b}{s(s+a_1)(s+a_2)}``
 
@@ -599,9 +596,8 @@ o [`get_model_prbs`](@ref).
 # Argumentos de palabra clave
 - `output::Symbol=:angle`: variable de salida del modelo (`:angle` o `:speed`).
 - `numpar::Int=2`: número de parámetros del modelo. `numpar=2` (por defecto)
-  usa el modelo de un polo (`datafiles/DCmotor_fo_model_2p.csv`); `numpar=3`
-  usa el modelo de dos polos estimado con [`get_model_prbs`](@ref)
-  (`datafiles/DCmotor_fo_model_3p.csv`).
+  usa el modelo de un polo; `numpar=3`
+  usa el modelo de dos polos estimado con [`get_model_prbs`](@ref).
 
 Con `numpar=2`, la realización retornada es:
 
@@ -674,7 +670,6 @@ function ss(sys::MotorSystem; output::Symbol = :angle, numpar::Int = 2)
         end
     
     end 
-
 
     D = [0]
     sys_ss = ss(A,B,C,D)
