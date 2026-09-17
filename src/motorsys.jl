@@ -472,22 +472,29 @@ end
 # ── Modelos de la planta ─────────────────────────────────────────────────────
 
 """
-    get_last_model(sys::MotorSystem, output::Symbol=:angle)
+    get_last_model(sys::MotorSystem; output::Symbol=:angle, numpar::Int=2)
 
 Retorna la función de transferencia y el retardo de la plataforma DCMotor, estimados
 previamente con [`get_model_step`](@ref) o [`get_model_prbs`](@ref).
 
-
 # Argumentos
 - `sys::MotorSystem`: objeto de la plataforma (no necesita estar conectado;
   solo se usa para ubicar el archivo del modelo).
-- `output::Symbol=:angle`: variable de salida del modelo. Según el valor de `output`, la
-  función de transferencia retornada puede ser:
-  
-  + `:speed` → ``G=\\frac{b}{s+a}`` (modelo con salida de velocidad angular).
-  + `:angle` → ``G=\\frac{b}{s(s+a)}`` (se agrega un integrador para obtener un modelo 
-  con salida de posición angular).
 
+# Argumentos de palabra clave
+- `output::Symbol=:angle`: variable de salida del modelo (`:angle` o `:speed`);
+  ver la nota sobre `numpar` para las expresiones exactas.
+- `numpar::Int=2`: número de parámetros del modelo estático a usar.
+  + `numpar=2` (por defecto): modelo de un polo, leído de
+    `datafiles/DCmotor_fo_model_2p.csv` (generado por [`get_model_step`](@ref)
+    o por [`get_model_prbs`](@ref) con `numpar=2`):
+
+    ``:speed \\to G=\\dfrac{b}{s+a}, \\qquad :angle \\to G=\\dfrac{b}{s(s+a)}``
+
+  + `numpar=3`: modelo de dos polos, leído de `datafiles/DCmotor_fo_model_3p.csv`
+    (generado por [`get_model_prbs`](@ref) con `numpar=3`):
+
+    ``:speed \\to G=\\dfrac{b}{(s+a_1)(s+a_2)}, \\qquad :angle \\to G=\\dfrac{b}{s(s+a_1)(s+a_2)}``
 
 # Retorna
 - `G::ControlSystems.TransferFunction`: función de transferencia continua
@@ -498,8 +505,8 @@ es de una muestra (0.02s).
 # Ejemplos
 ```julia
 sys = MotorSystem();
-G_angle = tf(sys)                 # modelo nominal con salida de  ángulo (por defecto)
-G_speed = tf(sys, output=:speed)         # modelo nominal con salida de velocidad angular
+G_angle, L = get_last_model(sys)                          # modelo de 1 polo, salida de ángulo (por defecto)
+G_speed, L = get_last_model(sys; output=:speed, numpar=3)  # modelo de 2 polos, salida de velocidad angular
 ```
 """
 function get_last_model(sys::MotorSystem; output::Symbol = :angle, numpar::Int = 2)
@@ -538,20 +545,27 @@ end
 
 
 """
-    tf(sys::MotorSystem, output::Symbol=:angle)
+    tf(sys::MotorSystem; output::Symbol=:angle, numpar::Int=2)
 
 Retorna la función de transferencia nominal (sin retardo) de la plataforma DCMotor, estimada
-previamente estimada con [`get_model_step`](@ref) o [`get_model_prbs`](@ref).
-
+previamente con [`get_model_step`](@ref) o [`get_model_prbs`](@ref).
 
 # Argumentos
 - `sys::MotorSystem`: objeto que representa la plataforma.
-  
-- `output::Symbol=:angle`: variable de salida del modelo. Según el valor de `output`, la
-  función de transferencia retornada puede ser:
-  
-  + `:speed` → ``G=\\frac{b}{s+a}``  → Modelo con salida de velocidad angular.
-  + `:angle` → ``G=\\frac{b}{s(s+a)}`` → se agrega un integrador para obtener un modelo con salida de posición angular).
+
+# Argumentos de palabra clave
+- `output::Symbol=:angle`: variable de salida del modelo (`:angle` o `:speed`);
+  ver la nota sobre `numpar` para las expresiones exactas.
+- `numpar::Int=2`: número de parámetros del modelo. Con `numpar=2` (por
+  defecto) se usa el modelo de un polo estimado en
+  `datafiles/DCmotor_fo_model_2p.csv`:
+
+  ``:speed \\to G=\\dfrac{b}{s+a}, \\qquad :angle \\to G=\\dfrac{b}{s(s+a)}``
+
+  Con `numpar=3` se usa el modelo de dos polos, estimado con
+  [`get_model_prbs`](@ref) (`numpar=3`) en `datafiles/DCmotor_fo_model_3p.csv`:
+
+  ``:speed \\to G=\\dfrac{b}{(s+a_1)(s+a_2)}, \\qquad :angle \\to G=\\dfrac{b}{s(s+a_1)(s+a_2)}``
 
 # Retorna
 - `G::ControlSystemsBase.TransferFunction`: función de transferencia
@@ -560,8 +574,9 @@ previamente estimada con [`get_model_step`](@ref) o [`get_model_prbs`](@ref).
 # Ejemplos
 ```julia
 sys = MotorSystem();
-G_angle = tf(sys)                 # modelo nominal con salida de  ángulo (por defecto)
-G_speed = tf(sys, output=:speed)         # modelo nominal con salida de velocidad angular
+G_angle = tf(sys)                            # modelo de 1 polo, salida de ángulo (por defecto)
+G_speed = tf(sys; output=:speed)             # modelo de 1 polo, salida de velocidad angular
+G_speed2p = tf(sys; output=:speed, numpar=3) # modelo de 2 polos, salida de velocidad angular
 ```
 """
 function tf(sys::MotorSystem; output::Symbol = :angle, numpar::Int = 2)
@@ -572,43 +587,55 @@ end
 
 
 """
-    ss(sys::MotorSystem, output::Symbol=:angle)
+    ss(sys::MotorSystem; output::Symbol=:angle, numpar::Int=2)
 
 Retorna la realización en espacio de estado del modelo nominal (sin retardo)
-de la plataforma DCMotor, estimada
-previamente estimada con [`get_model_step`](@ref) o [`get_model_prbs`](@ref).
+de la plataforma DCMotor, estimada previamente con [`get_model_step`](@ref)
+o [`get_model_prbs`](@ref).
 
 # Argumentos
 - `sys::MotorSystem`: objeto que representa la plataforma.
 
-- `output::Symbol=:angle`: variable de salida del modelo. Según el valor de `output`, la realización
-   retornada puede ser:
-  
-  + `:angle`: el modelo que retorna tiene salida de ángulo, dado por: 
-  
-   ``\\begin{bmatrix} \\dot x_1 \\\\ \\dot x_2 \\end{bmatrix} = \\begin{bmatrix} - a &  0 \\\\  1 & 0 \\end{bmatrix} \\begin{bmatrix}  x_1 \\\\  x_2 \\end{bmatrix} +  \\begin{bmatrix} b \\\\ 0 \\end{bmatrix} u``
-   
-   ``y =  \\begin{bmatrix} 0 & 1 \\end{bmatrix}\\begin{bmatrix}  x_1 \\\\  x_2 \\end{bmatrix}``.
+# Argumentos de palabra clave
+- `output::Symbol=:angle`: variable de salida del modelo (`:angle` o `:speed`).
+- `numpar::Int=2`: número de parámetros del modelo. `numpar=2` (por defecto)
+  usa el modelo de un polo (`datafiles/DCmotor_fo_model_2p.csv`); `numpar=3`
+  usa el modelo de dos polos estimado con [`get_model_prbs`](@ref)
+  (`datafiles/DCmotor_fo_model_3p.csv`).
 
-  + `:speed`: el modelo que retorna es de velocidad angular, dado por:
+Con `numpar=2`, la realización retornada es:
 
-   ``\\dot x_1 = - a\\,x_1 + b\\,u``
+  + `:angle`:
 
-   ``y =  x_1``
-       
+   ``\\begin{bmatrix} \\dot x_1 \\\\ \\dot x_2 \\end{bmatrix} = \\begin{bmatrix} - a &  0 \\\\  1 & 0 \\end{bmatrix} \\begin{bmatrix}  x_1 \\\\  x_2 \\end{bmatrix} +  \\begin{bmatrix} b \\\\ 0 \\end{bmatrix} u, \\qquad y =  \\begin{bmatrix} 0 & 1 \\end{bmatrix}\\begin{bmatrix}  x_1 \\\\  x_2 \\end{bmatrix}``
+
+  + `:speed`:
+
+   ``\\dot x_1 = - a\\,x_1 + b\\,u, \\qquad y =  x_1``
+
+Con `numpar=3` (modelo de dos polos ``a_1``, ``a_2``), la realización retornada es:
+
+  + `:angle`:
+
+   ``\\begin{bmatrix} \\dot x_1 \\\\ \\dot x_2 \\\\ \\dot x_3 \\end{bmatrix} = \\begin{bmatrix} - a_1 &  0 & 0 \\\\  1 & -a_2 & 0 \\\\ 0 & 1 & 0 \\end{bmatrix} \\begin{bmatrix}  x_1 \\\\  x_2 \\\\ x_3 \\end{bmatrix} +  \\begin{bmatrix} b \\\\ 0 \\\\ 0 \\end{bmatrix} u, \\qquad y =  \\begin{bmatrix} 0 & 0 & 1 \\end{bmatrix}\\begin{bmatrix}  x_1 \\\\  x_2 \\\\ x_3 \\end{bmatrix}``
+
+  + `:speed`:
+
+   ``\\begin{bmatrix} \\dot x_1 \\\\ \\dot x_2 \\end{bmatrix} = \\begin{bmatrix} - a_1 &  0 \\\\  1 & -a_2 \\end{bmatrix} \\begin{bmatrix}  x_1 \\\\  x_2 \\end{bmatrix} +  \\begin{bmatrix} b \\\\ 0 \\end{bmatrix} u, \\qquad y =  \\begin{bmatrix} 0 & 1 \\end{bmatrix}\\begin{bmatrix}  x_1 \\\\  x_2 \\end{bmatrix}``
 
 # Retorna
 - `sys_ss::ControlSystemsBase.StateSpace`: realización continua en espacio de
   estado de la plataforma DCMotor para la salida seleccionada.
 
 # Nota
-- Los parámetros ``a`` y ``b`` usados en las realizaciones se toman de los valores estimados por medio de las funciones [`get_model_step`](@ref) o [`get_model_prbs`](@ref).
+- Los parámetros usados en las realizaciones se toman de los valores estimados por medio de las funciones [`get_model_step`](@ref) o [`get_model_prbs`](@ref).
 
 # Ejemplos
 ```julia
 sys = MotorSystem();
-ss_angle = ss(sys, output=:angle)     # modelo del ángulo
-ss_speed = ss(sys, output=:speed)     # modelo en velocidad angular
+ss_angle = ss(sys)                          # modelo de 1 polo, salida de ángulo (por defecto)
+ss_speed = ss(sys; output=:speed)           # modelo de 1 polo, salida de velocidad angular
+ss_speed2p = ss(sys; output=:speed, numpar=3) # modelo de 2 polos, salida de velocidad angular
 ```
 """
 function ss(sys::MotorSystem; output::Symbol = :angle, numpar::Int = 2)
