@@ -8,7 +8,7 @@
 ## definiciones
 using DCMotor
 sys = MotorSystem();
-G = tf(sys,:angle)
+G = tf(sys; output=:angle)
 
 
 ## diseño y carga del controlador

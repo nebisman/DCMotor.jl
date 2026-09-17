@@ -2,7 +2,7 @@
 ## Control por VE simple sin accion integral
 using DCMotor
 sys = MotorSystem();
-mot = ss(sys)
+mot = ss(sys; output=:angle)
 
 # diseñamos e implmentamos el controlador
 K = place(mot, [-10+10im, -10-10im])
