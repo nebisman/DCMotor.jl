@@ -208,7 +208,7 @@ funciones de identificación  [`get_model_step`](@ref) o [`get_model_prbs`](@ref
 Así podrá invocar la función de transferencia del sistema con la función `tf`:
 
 ```julia
-G_angle = tf(sys, :speed)
+G_angle = tf(sys, output=:speed)
 ```
 
 Luego, defina los polos deseados de lazo cerrado y diseñe el controlador:

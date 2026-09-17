@@ -2,7 +2,7 @@
 # definicion del sistema
 using DCMotor
 sys = MotorSystem();
-Gang = tf(sys, :angle)
+Gang = tf(sys; output=:angle)
 
 b = numvec(Gang)[1][1]
 a = denvec(Gang)[1][2]

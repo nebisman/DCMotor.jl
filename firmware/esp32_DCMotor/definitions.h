@@ -5,7 +5,7 @@
 #include <ESP32Encoder.h>
 #include <ArduinoJson.h>
 #include <Adafruit_NeoPixel.h>
-
+#include <driver/mcpwm.h>  // driver MCPWM (legacy) del ESP32, alternativa a ledc
 
 
 
@@ -19,6 +19,9 @@
 #define  PIN_AIN1          2
 #define  PIN_AIN2          1 // WEMOS 4  // ESP32S3 1
 
+// configuracion del modulo MCPWM (unidad y timer usados para el motor)
+#define MCPWM_UNIT_MOTOR   MCPWM_UNIT_0
+#define MCPWM_TIMER_MOTOR  MCPWM_TIMER_0
 
 
 
@@ -119,8 +122,10 @@ const uint8_t gamma8[] = {
 
 
 
-// conversion from volts to 12bits-PWM
-const float percent2pwm = (float) (4095.0/5.0);
+// conversion from volts to percent of PWM
+
+const float voltsToPwm =   100.0 / 5.0;
+
 
 // conversion from pulses to degrees from a 600 ppr encoder
 const float pulses2degrees = (float) (360.0/2800.0);
@@ -346,27 +351,23 @@ float linearInterpolation(uint32_t t[], float r[], uint16_t n, uint32_t t_interp
     return result;
 }
 
-void voltsToMotor( float volts){
-    // This function convert a voltage value given in variable volts
-    // to a bipolar pwm signal for controlling the motor
-
-    unsigned int pwm = 4095- abs(volts)*percent2pwm;
+void voltsToMotor(float volts){
+    // convierte un voltaje (volts) en un ciclo de trabajo (0-100%)
+    // replicando la misma logica de signo/magnitud de voltsToMotor
+    float dutyPwm = abs(volts) * voltsToPwm;
 
     if (volts < 0){
-        // if var volts is negative use CH_PWM_AIN2 to output a pwm signal
-        // proportional to the input voltage
-        ledcWrite(PIN_AIN1, pwm);
-        //digitalWrite(PIN_AIN2, HIGH);
-        ledcWrite(PIN_AIN2, 4095);
+        // si volts es negativo, PIN_AIN1 recibe la señal pwm proporcional
+        mcpwm_set_duty(MCPWM_UNIT_MOTOR, MCPWM_TIMER_MOTOR, MCPWM_GEN_A, dutyPwm);
+        mcpwm_set_duty(MCPWM_UNIT_MOTOR, MCPWM_TIMER_MOTOR, MCPWM_GEN_B, 0);
     }
     else{
-        // if var volts is negative use CH_PWM_AIN1 to output a pwm signal
-        // proportional to the input voltage
-        ledcWrite(PIN_AIN1, 4095);
-        //digitalWrite(PIN_AIN1, HIGH);
-        ledcWrite(PIN_AIN2, pwm);
+        // si volts es positivo, PIN_AIN2 recibe la señal pwm proporcional  
+        mcpwm_set_duty(MCPWM_UNIT_MOTOR, MCPWM_TIMER_MOTOR, MCPWM_GEN_A, 0);
+        mcpwm_set_duty(MCPWM_UNIT_MOTOR, MCPWM_TIMER_MOTOR, MCPWM_GEN_B, dutyPwm);
     }
 }
+
 
 
 
@@ -861,9 +862,18 @@ void setup_peripherals(void){
     Serial.onReceive(onSerialReceive);
 
     //setting the pwm channels
-    
-    ledcAttach(PIN_AIN1, FREQUENCY_PWM, RESOLUTION_PWM);
-    ledcAttach(PIN_AIN2, FREQUENCY_PWM, RESOLUTION_PWM);
+    // asignamos los pines del puente h a las señales del mcpwm
+
+    mcpwm_gpio_init(MCPWM_UNIT_MOTOR, MCPWM0A, PIN_AIN1);
+    mcpwm_gpio_init(MCPWM_UNIT_MOTOR, MCPWM0B, PIN_AIN2);
+
+    mcpwm_config_t pwmConfig;
+    pwmConfig.frequency = FREQUENCY_PWM;
+    pwmConfig.cmpr_a = 0;
+    pwmConfig.cmpr_b = 0;
+    pwmConfig.counter_mode = MCPWM_UP_COUNTER;
+    pwmConfig.duty_mode = MCPWM_DUTY_MODE_1; // con este cambio para que no quede complementario
+    mcpwm_init(MCPWM_UNIT_MOTOR, MCPWM_TIMER_MOTOR, &pwmConfig);
 
     //open the serial port for revising the board messages
     

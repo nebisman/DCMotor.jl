@@ -636,7 +636,7 @@ Los parámetros de esta función son los siguientes:
   `α = Δy/Δu` se calcula directamente de los valores estacionarios antes y
   después del escalón.
 - Se muestra una gráfica comparando la salida experimental con el modelo
-  simulado, y se guardan los parámetros en `datafiles/DCmotor_fo_model.csv`.
+  simulado, y se guardan los parámetros en `datafiles/DCmotor_fo_model_2p.csv`.
 
 # Ejemplo
 Primero, asegúrese de haber importado el paquete DCMotor y de haber
@@ -765,10 +765,10 @@ function get_model_step(sys::MotorSystem;
     a = 1 / tau
     G = b /(s+a) 
 
-    open(_datafile("DCmotor_fo_model.csv"), "w") do io
+    open(_datafile("DCmotor_fo_model_2p.csv"), "w") do io
             println(io, "b,a,L")
             @printf(io, "%.8f,%.8f,%.3f\n", b, a, L_val)
-    end    
+    end
     return G, L_val
 end
 
@@ -822,7 +822,7 @@ Los parámetros de esta función son los siguientes:
   El modelo discreto resultante se convierte a tiempo continuo con la función `c2d`.
 - Al finalizar, se muestra una gráfica que compara la salida experimental con la simulada por el
   modelo (indicando el porcentaje de ajuste, o *FIT*), y se guardan los
-  parámetros en `datafiles/DCmotor_fo_model.csv`.
+  parámetros en `datafiles/DCmotor_fo_model_2p.csv` (o `_3p.csv` si `numpar=3`).
 
 # Ejemplo
 Primero, asegúrese de haber importado el paquete DCMotor y de haber
@@ -847,8 +847,8 @@ PRBS, así:
 G, L = get_model_prbs(sys; yop=350, sigma=60);
 ```
 """
-function get_model_prbs(sys::MotorSystem;
-                         yop::Real = 400, sigma::Real = 100, usefile::Bool = false)
+function get_model_prbs(sys::MotorSystem; 
+                         yop::Real = 400, numpar::Int = 2, sigma::Real = 100, usefile::Bool = false)
     ymax = speed_from_volts(sys, 5)
     
 
@@ -873,7 +873,21 @@ function get_model_prbs(sys::MotorSystem;
     else 
         t, u, y = read_csv_file3(_datafile("DCmotor_prbs_open_exp.csv"))
     end
+    
+    s = tf("s")
 
+    function model2p(p)
+        a1, a2,  b = p
+        sis = b/((s+a1)*(s+a2)) # modelo continuo
+        return  ss(sis, balance=false) # se aplica un retardo de tau segundos al modelo discreto
+    end
+
+    function model1p(p)
+        a,  b = p
+        sis = b/(s+a) # modelo continuo
+        return  ss(sis, balance=false) # se aplica un retardo de tau segundos al modelo discreto
+    end
+    
     ymean_val = Float64(mean(y))
     
     # removing means
@@ -883,28 +897,55 @@ function get_model_prbs(sys::MotorSystem;
 
     # Formatear entrada como matriz (1 × N) para lsim  
 
-    na, nb = 1, 1 
-    data = iddata(ym, um, SAMPLING_TIME)
-    data = prefilter(data,0, 12.5)  
-     
-    Gh = arx(data, na, nb, inputdelay=1, estimator = wtls_estimator(data.y, na, nb)) 
-    G1 = d2c(Gh)
-    u_matrix = reshape(um, 1, :)
-    res = lsim(G1, u_matrix, t)
-    ysim =  vec(res.y)
-    r1 = modelfit(data.y', ysim)
    
+    data = iddata(ym, um, SAMPLING_TIME)
+    #data = prefilter(data,2, 15)  
+    u_matrix = reshape(um, 1, :)
+    L = SAMPLING_TIME  # Retardo de una muestra
 
+     
+    if numpar == 2
+        # p0 = [ 10.0, 1000.0]  # valores iniciales para [a1, a2, b, tau]
+        # optim_model = structured_pem(data,1; p0=p0,  constructor=model1p)
+        # a, b = optim_model.res.minimizer.p
+        # G1 = b/(s+a)
 
+        # if decide to change tO ARX
+        na = 1
+        nb = 1
+        Gh = arx(data, na, nb, inputdelay=1, estimator = wtls_estimator(data.y, na, nb)) 
+        G1 = d2c(Gh)        
+        res = lsim(G1, u_matrix, t)
+        ysim =  vec(res.y)
+        r1 = modelfit(data.y', ysim)
+        b = numvec(G1)[1][1];
+        a = denvec(G1)[1][2];
+        modelstr1 = latexstring(@sprintf("G(s) = \\frac{%.4f}{s + %.3f} \\quad (FIT=%.1f\\,\\%%)", b, a, r1))
+        
+        open(_datafile("DCmotor_fo_model_2p.csv"), "w") do io
+            println(io, "b,a,L")
+            @printf(io, "%.8f,%.8f,%.3f\n", b, a, SAMPLING_TIME)
+        end
+    
+    elseif numpar == 3
+        p0 = [50.0,  10.0, 1000.0]  # valores iniciales para [a1, a2, b, tau]
+        optim_model = structured_pem(data, 2; p0=p0,  constructor=model2p)
+        a1, a2, b = optim_model.res.minimizer.p
+        G1 = b/((s+a1)*(s+a2))
+        res = lsim(G1, u_matrix, t)
+        ysim =  vec(res.y)
+        r1 = modelfit(data.y', ysim)
+        modelstr1 = latexstring(@sprintf("G(s) = \\frac{%.4f}{(s + %.3f)(s + %.3f)} \\quad (FIT=%.1f\\,\\%%)", b, a1, a2, r1))
+
+        open(_datafile("DCmotor_fo_model_3p.csv"), "w") do io
+            println(io, "b,a1,a2,L")
+            @printf(io, "%.8f,%.8f,%.8f,%.3f\n", b, a1, a2, SAMPLING_TIME)
+        end
+    end
+
+   
     # ── Gráfica comparativa ──────────────────────────────────────────
     
-    b = numvec(G1)[1][1];
-    a = denvec(G1)[1][2];
-
-
-    modelstr1 = latexstring(@sprintf("G(s) = \\frac{%.4f}{s + %.3f} \\quad (FIT=%.1f\\,\\%%)", b, a, r1))
-
-  
 
     xlims_v = (t[end] - 20, t[end])
     plt = plot(layout=(2, 1), size=(900, 550),
@@ -922,13 +963,6 @@ function get_model_prbs(sys::MotorSystem;
           label="PRBS", color=:green)
     redraw!(plt)
    
-
-    L = SAMPLING_TIME  # Retardo de una muestra
-    open(_datafile("DCmotor_fo_model.csv"), "w") do io
-            println(io, "b,a,L")
-            @printf(io, "%.8f,%.8f,%.3f\n", b, a, SAMPLING_TIME)
-    end
-
     return G1, L
 end
 

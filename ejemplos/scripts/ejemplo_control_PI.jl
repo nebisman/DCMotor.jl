@@ -2,11 +2,11 @@
 ## definicion del sistema y parametros
 using DCMotor
 sys = MotorSystem();
-G = tf(sys, :speed)
+G = tf(sys, output=:speed)
 
 ## Diseño por localización de polos
 # Frecuencia natural y factos de amortiguamiento
-ωn = 12
+ωn = 14
 ζ = .7
 s = tf("s")
 T= ωn^2/(s^2 + 2*ζ*ωn*s + ωn^2)
