@@ -844,7 +844,7 @@ Luego, estime los parámetros del modelo de primer orden a partir de un experime
 PRBS, así:
 
 ```julia
-G, L = get_model_prbs(sys; yop=350, sigma=60);
+G, L = get_model_prbs(sys; yop=360);
 ```
 """
 function get_model_prbs(sys::MotorSystem; 
@@ -920,7 +920,7 @@ function get_model_prbs(sys::MotorSystem;
         r1 = modelfit(data.y', ysim)
         b = numvec(G1)[1][1];
         a = denvec(G1)[1][2];
-        modelstr1 = latexstring(@sprintf("G(s) = \\frac{%.4f}{s + %.3f} \\quad (FIT=%.1f\\,\\%%)", b, a, r1))
+        modelstr1 = latexstring(@sprintf("G(s) = \\frac{%.3f}{s + %.3f} \\quad (FIT=%.1f\\,\\%%)", b, a, r1))
         
         open(_datafile("DCmotor_fo_model_2p.csv"), "w") do io
             println(io, "b,a,L")
@@ -935,7 +935,7 @@ function get_model_prbs(sys::MotorSystem;
         res = lsim(G1, u_matrix, t)
         ysim =  vec(res.y)
         r1 = modelfit(data.y', ysim)
-        modelstr1 = latexstring(@sprintf("G(s) = \\frac{%.4f}{(s + %.3f)(s + %.3f)} \\quad (FIT=%.1f\\,\\%%)", b, a1, a2, r1))
+        modelstr1 = latexstring(@sprintf("G(s) = \\frac{%.3f}{(s^2 + %.3f\\,s + %.3f)} \\quad (FIT=%.1f\\,\\%%)", b, a1+a2, a1*a2, r1))
 
         open(_datafile("DCmotor_fo_model_3p.csv"), "w") do io
             println(io, "b,a1,a2,L")

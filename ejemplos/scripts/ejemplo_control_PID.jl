@@ -6,18 +6,20 @@ Gang = tf(sys; output=:angle)
 
 b = numvec(Gang)[1][1]
 a = denvec(Gang)[1][2]
-# Calculo de las constantes del PID para el sistema de segundo orden
-ωn = 12
-ζ0 = 0.7
-n=2
+## Calculo de las constantes del PID para el sistema de segundo orden
+s=tf("s")
+ωn =12
+ζ = 0.7
+n=2.5
 
-T  = n*ωn^3/((s+n*ωn)*(s^2 + 2*ζ0*ωn*s +ωn^2))
+T  = n*ωn^3/((s+n*ωn)*(s^2 + 2*ζ*ωn*s +ωn^2))
 Kd = ((2ζ + n) * ωn - a) / b
 Kp = (1 + 2n * ζ) * ωn^2 / b
 Ki = n * ωn^3 / b
-set_pid(sys;  kp=Kp, ki=Ki, kd=Kd, beta=0, Tf=1e-4, output=:angle)
-result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 1, t1 =3);
+set_pid(sys;  kp=Kp, ki=Ki, kd=Kd, beta=0,  output=:angle)
+result = step_closed(sys; r0 = 0, r1 = 1090,  t0 = 1, t1 =10);
 stepinfo(result, T)
+
 
 
 #%% calculo de las constantes del PID con polinomio ITAE
