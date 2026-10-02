@@ -23,7 +23,7 @@ stepinfo(result,T)
 Aa = [A [0, 0]; -C 0]
 Ba = [B; 0]
 
-polos =  [-10+10im, -10-10im, -14]; 
+polos =  [-10+10im, -10-10im, -25]; 
 Ka = place(Aa, Ba, polos)
 
 set_ss_controller(sys, Ka)

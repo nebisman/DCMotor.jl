@@ -29,7 +29,7 @@ C, Kp, Ki, fig, CF = loopshapingPI(Gd, ωgc; rl=1,  phasemargin=50, form=:parall
 
 T1 = feedback(C*Gd, 1)
 # y lo probamos
-set_pid(sys;  kp=Kp, ki=Ki, kd=0, beta=1, output=:speed, deadzone=0)
+set_pid(sys;  kp=Kp, ki=Ki, kd=0, beta=1, output=:speed)
 result = step_closed(sys; r0 = 0, r1 = 400,  t0 = .5, t1 =1.5); 
 stepinfo(result,T1)
 
