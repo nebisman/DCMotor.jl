@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v1.0.1
+# v1.0.3
 
 using Markdown
 using InteractiveUtils
@@ -18,8 +18,11 @@ end
 
 # ╔═╡ b47a387e-680f-11f1-928e-8b266619493f
 begin
-    import Pkg
-    Pkg.activate()
+   using Pkg
+   Pkg.activate("/home/leonardo/datos/share_desktop/proyecto_julia/DCMotor.jl")
+   Pkg.instantiate() 
+    # 
+
     using Markdown
 using InteractiveUtils
 end

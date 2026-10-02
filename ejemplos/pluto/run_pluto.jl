@@ -1,1 +1,1 @@
-import Pluto; Pluto.run(capture_stdout = true)
+import Pluto; Pluto.run(capture_stdout = false)
