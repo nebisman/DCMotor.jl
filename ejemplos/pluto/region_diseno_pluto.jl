@@ -20,49 +20,49 @@ end
 begin
     using Pkg
 	Pkg.activate("/home/leonardo/datos/share_desktop/proyecto_julia/DCMotor.jl")
-	using ControlSystems, PlutoUI, PlutoPlotly, Printf
-    Pkg.instantiate()
-using DCMotor
-    sys = MotorSystem();
-    Gang = tf(sys; output=:angle)
-
-     b = numvec(Gang)[1][1]
-     a = denvec(Gang)[1][2]
-   ## Calculo de las constantes del PID para el sistema de segundo orden
-    s=tf("s")
+	using PlutoUI, PlutoPlotly, Printf   
+    using DCMotor
 	md"Paquetes cargados desde el entorno local."
 end
 
 # ╔═╡ a5488db8-ade2-440c-849e-06ded69d9b5e
 md"""
-# Región de diseño a partir de especificaciones temporales
+# Región de diseño a partir de especificaciones en el tiempo
 
 A partir de las especificaciones de desempeño (tiempo de establecimiento
-$t_{ee}$, tiempo de subida $t_r$ y sobrepico $M_p$) se calcula una región
+$t_{ee}$, tiempo de subida $t_r$ y sobrepico $SP$) se calcula una región
 de diseño en el plano $s$:
 
-$$\zeta_{min} = \dfrac{-\ln SP}{\sqrt{\pi^2 + \ln^2 SP}}, \qquad
+$$\zeta_{min} = \dfrac{-\ln (SP)}{\sqrt{\pi^2 + \ln^2 (SP)}}, \qquad
 \omega_{n,min} = \dfrac{2.23\,\zeta_{min}^2 + 0.036\,\zeta_{min} + 1.54}{t_r}, \qquad
 \sigma_{min} = \dfrac{5}{t_{ee}}$$
 
 donde $\zeta_{min}$ se obtiene invirtiendo la relación del sobrepico
 $SP = e^{-\pi\zeta/\sqrt{1-\zeta^2}}$.
 
-Se evalúa un sistema de tercer orden con un polo adicional
+Por medio de un controlador de dos parámetros se diseña una función de transferencia de lazo cerrado, dada por:
 
 $$T(s)=\dfrac{n\,\omega_n^3}{(s^2+2\zeta\omega_n s+\omega_n^2)(s+n\omega_n)}$$
 
+**Con los slider** puede ajustar las especificaciones de tiempo de desempeño. 
 
 **Haga clic en el plano complejo (gráfico de la derecha)** para ubicar los
 polos complejos de $T(s)$: se actualizan $\zeta$, $\omega_n$ y la
 respuesta al escalón.
 """
 
+# ╔═╡ 3518a593-0cb1-4a23-9c3f-98dc4d8e7159
+begin
+	sys = MotorSystem();
+	Gang = tf(sys; output=:angle)
+	md""
+end
+
 # ╔═╡ 5d1b486e-535b-436d-aa61-9ba58cdee12e
-md"``t_{ee}`` [s] = $(@bind t_ee Slider(0.1:0.01:0.5, default=0.5, show_value=true))"
+md"``t_{ee}`` [s] = $(@bind t_ee Slider(0.5:0.01:1, default=1, show_value=true))"
 
 # ╔═╡ 104b2ca8-79aa-4218-9006-64e14bf19c41
-md"``t_r`` [s] = $(@bind t_r Slider(0.05:0.001:0.1, default=0.1, show_value=true))"
+md"``t_r`` [s] = $(@bind t_r Slider(0.25:0.001:0.5, default=0.25, show_value=true))"
 
 # ╔═╡ a7f6738b-fe1c-49b6-83a4-fc4c9c2f6978
 md"``SP`` [%] = $(@bind SP Slider(0.2:0.5:10.0, default=5.0, show_value=true))"
@@ -80,19 +80,19 @@ end
 # ╔═╡ f82e1b85-b33f-43c6-8092-7991ec79133e
 md"
 Distancia del polo lejano 
-``n`` = $(@bind n Slider(1.0:0.5:5.0, default=1.5, show_value=true))"
-
-# ╔═╡ 45d40838-b168-499e-a06f-589da2089463
-
+``n \times \omega_n`` = $(@bind n Slider(1.0:0.5:3.0, default=2, show_value=true))"
 
 # ╔═╡ 9850a008-cf41-4def-a4d2-fc33a15fbeda
 begin
 	# Polo complejo superior seleccionado (x + jy). Inicial: s = -8 + j8.
 	# Se guarda en un Ref para que el gráfico interactivo lo lea sin crear una
 	# dependencia cíclica con el valor del clic.
-	polo_actual = Ref((-13.0, 13.0))
+	polo_actual = Ref((-8.0, 8.0))
 	md""
 end
+
+# ╔═╡ c8fc4c85-dd44-40d9-af5d-f5c752ad110d
+screen_pluto()
 
 # ╔═╡ 1f2715fa-1953-436d-9178-8b75cce17ffd
 @bind click_polo let
@@ -113,25 +113,25 @@ end
 	si = stepinfo(res3; risetime_th = (0.0, 0.9))
 
 	S = max(σ_min, ωn_min, n * ωn0)
-	Lax = 1.1 * n * ωn0   # mismo límite para ambos ejes del plano s
+	Lax = 1.05 * n * ωn0   # mismo límite para ambos ejes del plano s
 	L = 10 * S
 
 	# Líneas de especificación en la respuesta al escalón (mismos colores que la región)
 	SP_lim = 1 + SP / 100
 	ytop = max(1.2, 1.1 * max(maximum(y2), maximum(y3), SP_lim))
 	sp_txt, tr_txt, tee_txt = @sprintf("%.1f", SP), @sprintf("%.3f", t_r), @sprintf("%.2f", t_ee)
-	lab_sp = "SP ≤ $(sp_txt) %  →  obtenido: $(@sprintf("%.2f", si.overshoot)) %"
-	lab_tr = "tr ≤ $(tr_txt) s  →  obtenido: $(@sprintf("%.3f", si.risetime)) s"
-	lab_tee = "tee ≤ $(tee_txt) s  →  obtenido: $(@sprintf("%.3f", si.settlingtime)) s"
+	lab_sp = "SP ≤ $(sp_txt) % "
+	lab_tr = "tr ≤ $(tr_txt) s "
+	lab_tee = "tee ≤ $(tee_txt) s"
 
 	fig = make_subplots(rows = 1, cols = 2,
 		subplot_titles = ["Respuesta al escalón" "Polos de T(s) y región de diseño"])
 
-	add_trace!(fig, scatter(x = t, y = y2, mode = "lines", name = "2do orden (ζ, ωn)",
-		legend = "legend2", line = attr(color = "red", width = 2)), row = 1, col = 1)
+	add_trace!(fig, scatter(x = t, y = y2, mode = "lines", name = "",
+		legend = "", line = attr(color = "red", width = 0)), row = 1, col = 1)
 	idx_y2 = length(fig.data) - 1
-	add_trace!(fig, scatter(x = t, y = y3, mode = "lines", name = "3er orden (n = $n)",
-		legend = "legend2", line = attr(color = "blue", width = 2)), row = 1, col = 1)
+	add_trace!(fig, scatter(x = t, y = y3, mode = "lines", name = "Respuesta simulada de T(s) con n = $n",
+		legend = "legend2", line = attr(color = "rgba(0,136,170,1)", width = 2)), row = 1, col = 1)
 	idx_y3 = length(fig.data) - 1
 
 	add_trace!(fig, scatter(x = [0, tfinal], y = [SP_lim, SP_lim], mode = "lines",
@@ -243,9 +243,9 @@ end
 			y: [y2, y3, [SPlim, SPlim], [0, ytop], [0, ytop]]
 		}, [$(idx_y2), $(idx_y3), $(idx_sp), $(idx_tr), $(idx_tee)])
 		Plotly.restyle(PLOT, {name: [
-			'SP ≤ $(sp_txt) %  →  obtenido: ' + overshoot.toFixed(2) + ' %',
-			'tr ≤ $(tr_txt) s  →  obtenido (0–90%): ' + rise.toFixed(3) + ' s',
-			'tee ≤ $(tee_txt) s  →  obtenido: ' + settling.toFixed(3) + ' s'
+			'SP ≤ $(sp_txt) %',
+			'tr ≤ $(tr_txt) s' ,
+			'tee ≤ $(tee_txt) s',
 		]}, [$(idx_sp), $(idx_tr), $(idx_tee)])
 		Plotly.restyle(PLOT, {
 			x: [[x, x, -a3]], y: [[y, -y, 0]],
@@ -254,8 +254,8 @@ end
 
 		const upd = {'xaxis.range': [0, tf], 'yaxis.autorange': true}
 		const Lax = 1.1 * a3
-		upd['xaxis2.range'] = [-2 * Lax, 0]
-		upd['yaxis2.range'] = [-Lax, Lax]
+		upd['xaxis2.range'] = [-Math.max(20, Lax), 0]
+		upd['yaxis2.range'] = [-20, 20]
 		Plotly.relayout(PLOT, upd)
 
 		PLOT.value = [x, y]
@@ -265,10 +265,8 @@ end
 
 	add_js_listener!(fig, "click", js_click)
 	fig
+	
 end
-
-# ╔═╡ 9a21116c-a73d-48a9-b0ae-ccae90cea436
-
 
 # ╔═╡ 24242526-9406-4b86-ac62-f7227a5936cc
 let
@@ -278,9 +276,15 @@ let
 			polo_actual[] = (xc, yc)
 		end
 	end
+	s=tf("s")
 	x_act, y_act = polo_actual[]
 	ωn_act = hypot(x_act, y_act)
 	ζ_act = -x_act / ωn_act
+    T_act  = n*ωn_act^3/((s+n*ωn_act)*(s^2 + 2*ζ_act*ωn_act*s +ωn_act^2))
+	C = cont2dof(Gang, T_act, 2, [-4*ωn_act])
+	set_controller(sys, C; output=:angle)
+	result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 0.5, t1 = 20/(ωn_act*ζ_act));
+	stepinfo(result, T_act, risetime_th = (0.1, 0.9))	
 	cumple = ζ_act >= ζ_min && ωn_act >= ωn_min && -x_act >= σ_min
 	md"""
 	**Polos actuales:** ``\zeta`` = $(round(ζ_act, digits=3)), ``\omega_n`` = $(round(ωn_act, digits=3)) rad/s, polo adicional en $(round(-n * ωn_act, digits=3)) — $(cumple ? "🟢 dentro de la región de diseño" : "🔴 fuera de la región de diseño")
@@ -289,14 +293,14 @@ end
 
 # ╔═╡ Cell order:
 # ╠═23fce5ad-e993-4001-b4ff-742957cbd59e
-# ╠═a5488db8-ade2-440c-849e-06ded69d9b5e
+# ╟─a5488db8-ade2-440c-849e-06ded69d9b5e
+# ╟─3518a593-0cb1-4a23-9c3f-98dc4d8e7159
 # ╟─5d1b486e-535b-436d-aa61-9ba58cdee12e
 # ╟─104b2ca8-79aa-4218-9006-64e14bf19c41
 # ╟─a7f6738b-fe1c-49b6-83a4-fc4c9c2f6978
 # ╟─91a028da-5f54-4fb1-9109-a9fbffd23544
 # ╟─f82e1b85-b33f-43c6-8092-7991ec79133e
-# ╠═45d40838-b168-499e-a06f-589da2089463
 # ╟─9850a008-cf41-4def-a4d2-fc33a15fbeda
+# ╠═c8fc4c85-dd44-40d9-af5d-f5c752ad110d
 # ╟─1f2715fa-1953-436d-9178-8b75cce17ffd
-# ╠═9a21116c-a73d-48a9-b0ae-ccae90cea436
 # ╟─24242526-9406-4b86-ac62-f7227a5936cc

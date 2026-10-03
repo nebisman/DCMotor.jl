@@ -18,18 +18,16 @@ end
 
 # ╔═╡ b3000000-0000-0000-0000-000000000003
 begin
-import Pkg
-Pkg.activate(joinpath(@__DIR__, ".."))
-using ControlSystems, Plots, PlutoUI
-using DCMotor    
+    using Pkg
+    Pkg.activate("/home/leonardo/datos/share_desktop/proyecto_julia/DCMotor.jl")
+    using ControlSystems, Plots, PlutoUI
+    using DCMotor    
     md"Paquetes cargados desde el entorno local."
-
-
 end
 
 # ╔═╡ b1000000-0000-0000-0000-000000000001
 md"""
-# Diseño interactivo de un controlador PI en el dominio de la frecuencia
+# Diseño interactivo de un controlador PI  en el dominio de la frecuencia
 
 Lazo de control con realimentación unitaria negativa:
 
@@ -51,24 +49,28 @@ Margen de fase  ``\phi_m`` [°] = $(@bind ϕm Slider(1.0:1.0:80.0, default=30.0,
 
 """
 
+# ╔═╡ 1291d8f7-543d-458c-83ca-ae87505f1192
+screen_pluto()
+
 # ╔═╡ b4000000-0000-0000-0000-000000000004
 begin
-    sys = MotorSystem(port="/dev/ttyUSB0", bauds=460800);
-    Gnd=transfer_function(sys, :speed)
-    a = denvec(Gnd)[1][2]
-    b = numvec(Gnd)[1][1]
+    sys = MotorSystem();
+    Gnd = tf(sys, output=:speed)
     D = 0.02
     G   = Gnd*delay(D)   
-    sys = MotorSystem(port="/dev/ttyUSB0");
+    C, Kp, Ki, fig, CF = loopshapingPI(G, ωgc; rl=1,  phasemargin=ϕm, form=:parallel)
+    L   = C*G   # lazo abierto exacto con el retardo del tiempo de muestreo
+    Tpade = feedback(C*G,1);
     md""
 end
 
-# ╔═╡ b6000000-0000-0000-0000-000000000006
+# ╔═╡ 374cebef-d966-43be-a633-b2cb6ab3f480
 begin
-    C, Kp, Ki, fig, CF = loopshapingPI(G, ωgc; rl=1,  phasemargin=ϕm, form=:parallel)
-    L   = C*G                       # lazo abierto exacto
-    Tpade = feedback(C*G,1);
-md""
+	set_pid(sys;  kp=Kp, ki=Ki, kd=0, beta=1, output=:speed)	
+	# respuesta del controlador
+	result = step_closed(sys; r0 = 0, r1 = 400,  t0 = 1, t1 = max(2.0, 20.0/ωgc));
+	sinf=stepinfo(result, Tpade);
+	md""
 end
 
 # ╔═╡ b9000000-0000-0000-0000-000000000009
@@ -107,8 +109,24 @@ begin
     MtdB = magTdB[iMt];  ωMt = w[iMt];  Mt = 10^(MtdB/20)
 
     # Ancho de banda ωB (-3 dB de T; T(0)=1 ⇒ 0 dB en DC)
-    ωB = _cross(w, magTdB, -3.0)
+    ωB = _cross(w, magTdB, -3.0);
+    md""
 end
+
+# ╔═╡ 3025b6d3-b70e-4ef6-a576-b6ed268f69af
+md"""
+## Resumen de parámetros Tiempo -- Frecuencia
+
+| Métrica | Símbolo | Valor |
+|:--|:--:|:--:|
+| Margen de fase | $\phi_m$ | $(round(ϕm_check, digits=2)) ° |
+| Margen de ganancia | $GM$ | $(round(GMdB, digits=2)) dB |
+| Frecuencia de cruce de ganancia | $\omega_{gc}$ | $(round(ωgc, digits=3)) rad/s |
+| Ancho de banda (−3 dB) de $T$ | $\omega_{B}$ | $(round(ωB, digits=3)) rad/s |
+| Tiempo de establecimiento real (10–90 %) | $t_s$ | $(round(sinf.settlingtime, digits=3)) s 
+| Tiempo de subida real (10–90 %) | $t_r$ | $(round(sinf.risetime, digits=3)) s 
+| Sobrepico real  | $SP$ | $(round(sinf.overshoot, digits=3)) % 
+"""
 
 # ╔═╡ ba000000-0000-0000-0000-000000000010
 begin
@@ -120,12 +138,12 @@ begin
     tr      = si.risetime
     ωB_tr   = ωB*tr
     ωB_gc   = ωB/ωgc
+    md""
 end
 
 # ╔═╡ bb000000-0000-0000-0000-000000000011
 let
-    # ===== ARRIBA: Diagrama de Bode de L(s) (magnitud + fase, ancho completo) =====
-
+    
     # ---------- Magnitud de L ----------
     pLm = plot(w, magLdB; xscale=:log10, lw=2, c="#00aad4", label="|L(jω)|",
                ylabel="Magnitud [dB]", ylim=(-60, 30), grid=true, legend=:bottomleft,
@@ -154,7 +172,7 @@ let
         scatter!(pLp, [ωpc], [-180]; c=:red, ms=6, label="")
     end
 
-    # ===== ABAJO IZQUIERDA: Diagrama de Bode de T(s) =====
+    # ------------Diagrama de Bode de T(s) ----------=====
     ymaxT = isfinite(MtdB) ? max(6.0, MtdB + 4) : 6.0
     pT = plot(w, magTdB; xscale=:log10, lw=2, c=:purple, label="|T(jω)|",
               xlabel="ω [rad/s]", ylabel="Magnitud [dB]", ylim=(-40, ymaxT), grid=true,
@@ -183,48 +201,14 @@ let
 end
 
 
-# ╔═╡ 42cec293-bf43-4724-9740-79983a052b3d
-md"""
-## Respuesta experimental
-"""
-
-# ╔═╡ 10361dd7-cbd8-4978-91f7-b90b6a35e943
-begin
-	set_pid(sys;  kp=Kp, ki=Ki, kd=0, beta=1, output=:speed, deadzone=0)	
-	# respuesta del controlador
-	result = step_closed(sys; r0 = 0, r1 = 400,  t0 = 0, t1 =2);
-	sinf=stepinfo_exp(result; T=Tpade);
-	md""
-end
-
-# ╔═╡ a14f8ad1-d283-4467-8f71-fc0127eb5132
-screen_pluto()
-
-# ╔═╡ db96c539-5557-4409-9773-574f84446210
-md"""
-## Resumen de parámetros Tiempo -- Frecuencia
-
-| Métrica | Símbolo | Valor |
-|:--|:--:|:--:|
-| Margen de fase | $\phi_m$ | $(round(ϕm_check, digits=2)) ° |
-| Margen de ganancia | $GM$ | $(round(GMdB, digits=2)) dB |
-| Frecuencia de cruce de ganancia | $\omega_{gc}$ | $(round(ωgc, digits=3)) rad/s |
-| Ancho de banda (−3 dB) de $T$ | $\omega_{B}$ | $(round(ωB, digits=3)) rad/s |
-| Tiempo de establecimiento real (10–90 %) | $t_s$ | $(round(sinf.settlingtime, digits=3)) s 
-| Tiempo de subida real (10–90 %) | $t_r$ | $(round(sinf.risetime, digits=3)) s 
-| Sobrepico real  | $SP$ | $(round(sinf.overshoot, digits=3)) % 
-"""
-
 # ╔═╡ Cell order:
 # ╟─b1000000-0000-0000-0000-000000000001
 # ╟─b3000000-0000-0000-0000-000000000003
 # ╟─5cb111ad-5e3b-45d2-be76-b075cf9b384d
-# ╟─b4000000-0000-0000-0000-000000000004
-# ╟─b6000000-0000-0000-0000-000000000006
+# ╟─1291d8f7-543d-458c-83ca-ae87505f1192
+# ╠═b4000000-0000-0000-0000-000000000004
+# ╠═374cebef-d966-43be-a633-b2cb6ab3f480
 # ╟─b9000000-0000-0000-0000-000000000009
+# ╟─3025b6d3-b70e-4ef6-a576-b6ed268f69af
 # ╟─ba000000-0000-0000-0000-000000000010
-# ╟─bb000000-0000-0000-0000-000000000011
-# ╟─42cec293-bf43-4724-9740-79983a052b3d
-# ╟─10361dd7-cbd8-4978-91f7-b90b6a35e943
-# ╠═a14f8ad1-d283-4467-8f71-fc0127eb5132
-# ╟─db96c539-5557-4409-9773-574f84446210
+# ╠═bb000000-0000-0000-0000-000000000011

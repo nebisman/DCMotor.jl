@@ -106,7 +106,7 @@ function step_open(sys::MotorSystem;
         ylims=[(ylim_v[1] - 50, ylim_v[2] + 50) (ulim[1] - 0.1*du, ulim[2] + 0.1*du)],
         background_color_subplot=[:ivory :mintcream],
         legend=:bottomright, grid=true, gridalpha=0.15, margin=5Plots.mm)
-    display(plt)
+    redraw!(plt)
 
     connect!(sys)
     send_command!(sys, "step_open", payload)
@@ -241,7 +241,7 @@ function prbs_open(sys::MotorSystem;
         ylims=[(ylim_v[1] - 25, ylim_v[2] + 25) (ulim[1] - 0.1*du, ulim[2] + 0.1*du)],
         background_color_subplot=[:ivory :mintcream],
         legend=:bottomright, grid=true, gridalpha=0.15, margin=5Plots.mm)
-    display(plt)
+    redraw!(plt)
 
     connect!(sys)
     send_command!(sys, "prbs_open", payload)
@@ -562,7 +562,7 @@ function get_static_model(sys::MotorSystem; points::Int = 10)
         xticks=0:1:5, yticks=0:100:800,
         legend=:topleft, grid=true, gridalpha=0.2,  
         margin=2Plots.mm)
-    display(plt)
+    redraw!(plt)
 
 
     exp_data = hcat(uee, yee)
@@ -757,7 +757,7 @@ function get_model_step(sys::MotorSystem;
     plot!(plt, subplot=1, tsim, ymodel, label=model_str, legendfontsize = 10,color=:deeppink,
           linewidth=1.5)
     plot!(plt, subplot=2, t, u, label="Entrada", color=:green)
-    display(plt)
+    redraw!(plt)
 
 
     s = tf("s")

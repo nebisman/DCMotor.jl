@@ -14,14 +14,13 @@ G_ang = tf(sys, output=:angle)
 ω₀ = 20
 s=tf("s")
 T = ω₀^3/(s^3 + 1.75*s^2*ω₀ + 2.15*s*ω₀^2 + ω₀^3)
-C = cont2dof(G_ang, T, 2, [-80])
+C = cont2dof(G_ang, T, 2, [-4*ω₀])
 
 # respuesta del controlador
 set_controller(sys, C; output=:angle)
 result = step_closed(sys; r0 = 0, r1 = 90,  t0 = 0.5, t1 =2); 
 stepinfo(result, T)
  
-
 
 
 

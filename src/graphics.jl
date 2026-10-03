@@ -43,13 +43,13 @@ end
 #
 #      REPL     -> display(plt)                    (ventana GR, se redibuja sola)
 #      Jupyter  -> clear_output(true) + display    (misma salida de la celda)
-#      Pluto    -> put! a un canal interno; la celda `pantalla()` lo consume
+#      Pluto    -> guarda la última figura; la celda `screen_pluto()` la sondea
 #
 #      # celda 1
 #      using UNDCMotor
 #
 #      # celda 2 — la pantalla (una sola vez en todo el notebook)
-#      pantalla()
+#      screen_pluto()
 #
 #      # celda 3 — cualquier experimento, sin cambios
 #      t, r, y, u = step_closed(sys, 100.0, 300.0, 1.0, 2.0)
@@ -73,21 +73,37 @@ Identifica dónde se está ejecutando para decidir cómo mostrar cada figura.
 entorno() = isdefined(Main, :PlutoRunner) ? :pluto :
             (_ijulia() !== nothing       ? :jupyter : :script)
 
-# ── Canal de figuras (solo lo usa Pluto) ─────────────────────────────────────
+# ── Última figura publicada (solo la usa Pluto) ──────────────────────────────
 #
-#  Capacidad 1 con política "se conserva el más reciente": si el experimento
-#  produce figuras más rápido de lo que el navegador las pide, se descartan las
-#  intermedias en vez de encolar atraso. 
+#  Se guarda solo la figura más reciente junto con un número de versión. La
+#  pantalla pregunta "¿hay algo más nuevo que la versión v?" y la respuesta es
+#  inmediata: nunca se deja una tarea del worker bloqueada esperando figuras.
 
-const _FIGURAS = Channel{Any}(1)
+const _LOCK_FIG    = ReentrantLock()
+const _FIG         = Ref{Any}(nothing)
+const _FIG_VERSION = Ref(0)
+const _PNG_CACHE   = Ref((0, ""))      # (versión, data URL) ya renderizada
 
-"Deposita la figura descartando la anterior si nadie la había recogido."
+"Guarda la figura como la más reciente y cede el control para que la pantalla la recoja."
 function _publicar_figura(plt)
-    while isready(_FIGURAS)          # vaciar sin bloquear
-        take!(_FIGURAS)
+    lock(_LOCK_FIG) do
+        _FIG[] = plt
+        _FIG_VERSION[] += 1
     end
-    put!(_FIGURAS, plt)
+    yield()
     return nothing
+end
+
+"Devuelve la figura más reciente si es posterior a `desde`; `nothing` si no hay nada nuevo."
+function _figura_nueva(desde::Real)
+    plt, v = lock(() -> (_FIG[], _FIG_VERSION[]), _LOCK_FIG)
+    (plt === nothing || v <= desde) && return nothing
+    v_cache, src = _PNG_CACHE[]
+    if v_cache != v
+        src = _png_data_url(plt)
+        _PNG_CACHE[] = (v, src)
+    end
+    return Dict("version" => v, "src" => src)
 end
 
 # ── redraw!: el único punto de contacto con los experimentos ─────────────────
@@ -127,11 +143,12 @@ _hay_enlace_js() = isdefined(AbstractPlutoDingetjes, :Display) &&
                    isdefined(AbstractPlutoDingetjes.Display, :with_js_link)
 
 """
-    pantalla(; alto = nothing)
+    screen_pluto(; alto = nothing)
 
 Widget de monitoreo para Pluto: una celda que muestra cada figura que los
-experimentos publican con `redraw!`. Créela UNA vez, en su propia celda, y
-corra los experimentos en las celdas que quiera; la pantalla se actualiza sola.
+experimentos publican con `redraw!`. Créela UNA vez, en su propia celda (de
+preferencia antes de las celdas de experimentos), y corra los experimentos en
+las celdas que quiera; la pantalla se actualiza sola.
 
 Fuera de Pluto no hace falta: `redraw!` muestra directo en la ventana GR o en
 la celda de Jupyter.
@@ -143,10 +160,9 @@ function screen_pluto(; alto = nothing)
         Esta versión de AbstractPlutoDingetjes no expone Display.with_js_link.
         Actualícela en el entorno del paquete:  pkg> up AbstractPlutoDingetjes""")
 
-    enlace = AbstractPlutoDingetjes.Display.with_js_link() do _
-        plt = take!(_FIGURAS)          # bloquea hasta que un experimento publique
-        return _png_data_url(plt)
-    end
+    # Responde de inmediato: nunca deja una tarea del worker esperando figuras,
+    # para no interferir con los sliders ni con la ejecución de otras celdas.
+    enlace = AbstractPlutoDingetjes.Display.with_js_link(_figura_nueva)
 
     estilo = alto === nothing ? "max-width:100%; display:block" :
                                 "max-width:100%; height:$(alto)px; display:block"
@@ -165,19 +181,32 @@ function screen_pluto(; alto = nothing)
       let vivo = true
       invalidation.then(() => { vivo = false })
 
-      let k = 0
-      try {
-        while (vivo) {
-          const src = await pedir("siguiente")   // espera sin reloj ni sondeo
-          if (!vivo) break
-          k += 1
-          img.src = src
-          lbl.textContent = "trama " + k
+      // Sondeo corto con una sola petición en vuelo: rápido mientras llegan
+      // tramas, cada vez más lento cuando no hay nada nuevo.
+      const MIN = 60, MAX = 800
+      let version = 0, espera = MIN
+
+      const ciclo = async () => {
+        if (!vivo) return
+        try {
+          const r = await pedir(version)
+          if (!vivo) return
+          if (r != null) {
+            version = r.version
+            img.src = r.src
+            lbl.textContent = "trama " + version
+            espera = MIN
+          } else {
+            espera = Math.min(MAX, espera * 1.5)
+          }
+        } catch (err) {
+          lbl.textContent = "enlace cerrado: " + err
+          console.error(err)
+          return
         }
-      } catch (err) {
-        lbl.textContent = "enlace cerrado: " + err
-        console.error(err)
+        setTimeout(ciclo, espera)
       }
+      ciclo()
     </script>
     """)
 end

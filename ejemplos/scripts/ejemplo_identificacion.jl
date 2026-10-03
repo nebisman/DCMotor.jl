@@ -8,6 +8,7 @@
 using DCMotor
 sys = MotorSystem();
 
+
 ## 2. Ahora obtenemos el modelo estático
 uee, yee = get_static_model(sys);
 
