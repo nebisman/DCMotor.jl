@@ -31,11 +31,13 @@ include("control_design.jl")
 include("graphics.jl")
 
 # ── Inicialización ───────────────────────────────────────────────────────────
-# Se ejecuta cada vez que se hace `using DCMotor`: fija PATH_DATA al directorio
-# de trabajo actual y crea/puebla datafiles/ y ejemplos/ si aún no existen allí.
+# Se ejecuta cada vez que se hace `using DCMotor`: fija PATH_DATA a la carpeta
+# (actual, superior o dos niveles arriba) que ya tenga datafiles/ o ejemplos/,
+# o al directorio actual si no hay ninguna, y crea allí las que falten.
 function __init__()
-    PATH_DATA[] = pwd()
-    _ensure_dirs()   
+    raiz = _buscar_raiz_datos(pwd())
+    PATH_DATA[] = raiz === nothing ? pwd() : raiz
+    _ensure_dirs()
     close = MotorSystem(port="")
     disconnect!(close)
 end

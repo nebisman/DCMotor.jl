@@ -25,9 +25,29 @@ const PRBS_LENGTH   = 1023
 const FONT_SIZE     = 12
 
 # ── Rutas por defecto ────────────────────────────────────────────────────────
-# PATH_DATA apunta a la carpeta desde la cual el usuario invoca `using DCMotor`
-# (el directorio de trabajo en el momento de cargar el paquete).
+# PATH_DATA apunta a la carpeta de trabajo del usuario: la que ya contiene
+# datafiles/ o ejemplos/ (buscando desde el directorio actual hacia arriba),
+# o el directorio actual si no se encuentra ninguna.
 const PATH_DATA = Ref{String}("")
+
+"""
+Busca, desde `inicio` y subiendo hasta `niveles` carpetas, la primera que ya
+contenga `datafiles/` o `ejemplos/`. Así un notebook abierto en, p. ej.,
+`ejemplos/notebooks/` reutiliza las carpetas existentes en vez de crear otras.
+Retorna `nothing` si no encuentra ninguna.
+"""
+function _buscar_raiz_datos(inicio::AbstractString = pwd(); niveles::Int = 2)
+    dir = abspath(inicio)
+    for _ in 0:niveles
+        if isdir(joinpath(dir, "datafiles")) || isdir(joinpath(dir, "ejemplos"))
+            return dir
+        end
+        padre = dirname(dir)
+        padre == dir && break      # se llegó a la raíz del sistema de archivos
+        dir = padre
+    end
+    return nothing
+end
 
 """Ruta absoluta de un archivo dentro de PATH_DATA/datafiles."""
 _datafile(name::AbstractString) = joinpath(PATH_DATA[], "datafiles", name)

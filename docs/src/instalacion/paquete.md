@@ -27,6 +27,8 @@ Cuando el usuario carga el paquete por primera vez en un directorio de trabajo, 
 - `datafiles/`: archivos CSV con los datos generados por los experimentos
   (identificación, respuesta al escalón, PRBS, etc.), usados como entrada y salida  por las funciones del paquete.
 
+
+
  ## Problemas
 
  Si el ejemplo anterior no funciona como se espera, vaya a [Permisos del puerto serial en Linux](@ref) o [Instalación del driver CH340 en Windows](@ref), o intente la [Instalación del Firmware](@ref).
