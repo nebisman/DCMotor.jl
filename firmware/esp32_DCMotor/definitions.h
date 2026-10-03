@@ -354,7 +354,7 @@ float linearInterpolation(uint32_t t[], float r[], uint16_t n, uint32_t t_interp
 void voltsToMotor(float volts){
     // convierte un voltaje (volts) en un ciclo de trabajo (0-100%)
     // replicando la misma logica de signo/magnitud de voltsToMotor
-    float dutyPwm = abs(volts) * voltsToPwm;
+    float dutyPwm = constrain(abs(volts)*voltsToPwm, 0, 100);
 
     if (volts < 0){
         // si volts es negativo, PIN_AIN1 recibe la señal pwm proporcional

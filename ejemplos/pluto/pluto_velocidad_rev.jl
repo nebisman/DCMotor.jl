@@ -131,12 +131,6 @@ Ajusta ``\omega_n`` (rapidez) y ``\zeta`` (amortiguamiento). Para el prototipo d
 > ⚠️ Para que ``K_p \ge 0`` se requiere ``2\zeta\omega_n \ge a``, es decir ``\zeta\omega_n \ge a/2 \approx 1.73``. Con valores muy bajos de ``\zeta`` y ``\omega_n`` la ganancia proporcional resultaría negativa.
 """
 
-# ╔═╡ 620fa700-1409-4568-ba88-63d2a68d06db
-
-
-# ╔═╡ eaf1651b-5029-42f6-91f6-63637c9436f6
-
-
 # ╔═╡ c946efee-dfd6-414b-83cf-5fd4d591ab6a
 @bind ωn Slider(5:0.5:15.0, default=10.0, show_value=true)
 
@@ -149,6 +143,9 @@ md"""
 
 Con los valores actuales de los deslizadores se calculan ``K_p`` y ``K_i``, se cargan en el controlador del motor (`set_pid`) y se aplica un escalón de referencia de 0 a 400 durante 2 s. La función `stepinfo_exp` compara la respuesta **experimental** del motor con la respuesta **prototipo** ``T(s)``.
 """
+
+# ╔═╡ 2f4262d2-5ff6-4af3-8e18-e18467ad5a88
+screen_pluto()
 
 # ╔═╡ d6c868db-98e3-403b-ad93-cf33ced403f4
 begin
@@ -163,11 +160,9 @@ Ki = ωn^2/b
 set_pid(sys;  kp=Kp, ki=Ki, kd=0, beta=0, output=:speed, deadzone=0)
 	
 # respuesta del controlador
-result = step_closed(sys; r0 = 0, r1 = 400,  t0 = 0, t1 =2);
+result = step_closed(sys; r0 = 0, r1 = 400,  t0 =0.2, t1 =2);
+stepinfo(result)
 end
-
-# ╔═╡ 9d461267-b7c1-4598-99f3-fd838ee968c5
-screen_pluto()
 
 # ╔═╡ fdd92ef6-8561-4afa-8e8f-e9ccadbcd475
 md"""
@@ -198,12 +193,10 @@ end
 # ╠═9b61f289-d73d-43ed-89dd-0d1fbe22dcf7
 # ╟─bb58e7a1-9b6f-466a-bb76-62390bcb9c6a
 # ╟─c1a00003-0003-4003-8003-000000000003
-# ╠═620fa700-1409-4568-ba88-63d2a68d06db
-# ╠═eaf1651b-5029-42f6-91f6-63637c9436f6
 # ╠═c946efee-dfd6-414b-83cf-5fd4d591ab6a
-# ╟─a419c077-63f7-4b70-8a8a-dc1408eb6716
+# ╠═a419c077-63f7-4b70-8a8a-dc1408eb6716
 # ╟─c1a00004-0004-4004-8004-000000000004
+# ╠═2f4262d2-5ff6-4af3-8e18-e18467ad5a88
 # ╠═d6c868db-98e3-403b-ad93-cf33ced403f4
-# ╠═9d461267-b7c1-4598-99f3-fd838ee968c5
 # ╟─fdd92ef6-8561-4afa-8e8f-e9ccadbcd475
 # ╠═d7efac43-c45e-4fda-a682-95be82d183fb

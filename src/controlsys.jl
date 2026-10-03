@@ -111,13 +111,22 @@ set_pid(sys; kp=0.2, ki=1.0, kd=0.0082, N=10.0, beta=0.0, output=:angle, deadzon
 """
 function set_pid(sys::MotorSystem;
                   kp::Real = 0.2164, ki::Real = 1.8122, kd::Real = 0.004244,
-                  N = nothing, beta::Real = 0.0, Tf::Real = 1e-4, 
+                  N::Real = 10.0, beta::Real = 0.0, Tf = nothing, 
                   output::Symbol = :angle, deadzone::Real = get_deadzone())
     
     
     h = SAMPLING_TIME
     
-    if N === nothing     
+    if Tf === nothing    
+        type_map = Dict(:angle => 0, :speed => 1)
+        p1 = kp * beta
+        p2 = kp + kd/(kd/N + h)
+        p3 = kd / (N*(kd/N + h))
+        p4 = kd*h / (kd/N + h)^2
+        p5 = ki * h
+
+    else
+                 
         type_map = Dict(:angle => 6, :speed => 7)
         p5 = Tf^2 + 2*h*Tf + 2*h^2
         p1= Tf^2 / p5
@@ -125,13 +134,6 @@ function set_pid(sys::MotorSystem;
         p3 = ki*h
         p4 = kd / h   
 
-    else
-        type_map = Dict(:angle => 0, :speed => 1)
-        p1 = kp * beta
-        p2 = kp + kd/(kd/N + h)
-        p3 = kd / (N*(kd/N + h))
-        p4 = kd*h / (kd/N + h)^2
-        p5 = ki * h
     end
 
     haskey(type_map, output) || error("output debe ser :angle o :speed")
@@ -562,7 +564,7 @@ function step_closed(sys::MotorSystem;
         background_color_subplot=[:ivory :mintcream],
         legend=[:bottomright :bottomright],
         grid=true, gridalpha=0.25, margin=5Plots.mm)
-    display(plt)
+    redraw!(plt)
 
     # Comunicación
     connect!(sys) 
@@ -696,7 +698,7 @@ function stairs_closed(sys::MotorSystem;
         ylims=[(min(0, mn - 0.1*abs(span)), mx + 0.1*span) (-5.5, 5.5)],
         background_color_subplot=[:ivory :mintcream],
         legend=:topright, grid=true, gridalpha=0.15, margin=5Plots.mm)
-    display(plt)
+    redraw!(plt)
    
     connect!(sys)
     
@@ -829,7 +831,7 @@ function profile_closed(sys::MotorSystem;
         ylims=[(mn - 0.1*abs(span), mx + 0.1*span) (-5.5, 5.5)],
         background_color_subplot=[:ivory :mintcream],
         legend=:topright, grid=true, gridalpha=0.15, margin=5Plots.mm)
-    display(plt)
+    redraw!(plt)
 
     connect!(sys)
     send_command!(sys, "prof_closed", payload)

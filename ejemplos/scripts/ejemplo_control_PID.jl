@@ -16,7 +16,7 @@ T  = n*ωn^3/((s+n*ωn)*(s^2 + 2*ζ*ωn*s +ωn^2))
 Kd = ((2ζ + n) * ωn - a) / b
 Kp = (1 + 2n * ζ) * ωn^2 / b
 Ki = n * ωn^3 / b
-set_pid(sys;  kp=Kp, ki=Ki, kd=Kd, beta=0,  output=:angle)
+set_pid(sys;  kp=Kp, ki=Ki, kd=Kd, beta=0, Tf=1e-4, output=:angle)
 result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 1, t1 =2);
 stepinfo(result, T)
 
