@@ -773,21 +773,28 @@ function get_model_step(sys::MotorSystem;
 end
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  get_models_prbs  (modelo de primer orden desde PRBS)
+#  get_model_prbs  (modelo de uno o dos polos desde PRBS)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 """
-    get_model_prbs(sys::MotorSystem; yop=400, sigma=100, usefile=false)
+    get_model_prbs(sys::MotorSystem; yop=400, numpar=2, sigma=100, usefile=false)
 
-Estima los parámetros de un modelo dinámico lineal de primer orden de la forma
+Estima un modelo dinámico lineal que relaciona la velocidad angular del motor con
+la entrada de voltaje aplicada. Según el valor de `numpar`, el modelo puede ser:
 
-``\\qquad \\qquad G(s) =  \\dfrac{b}{s+a}``, 
+- `numpar=2` (por defecto): modelo de primer orden, con dos parámetros (``a`` y ``b``):
 
-el cual relaciona la velocidad angular del motor con la entrada de voltaje aplicada.  Para
-obtener este modelo se realiza un experimento en lazo abierto, aplicando como entrada una onda binaria pseudoaleatoria
-(PRBS) cuyos valores se ajusta automáticamente para que el punto de operación especificado,  `yop` (en °/s), quede aproximadamente
-centrado, tal como se ilustra en la figura siguiente:
+  ``\\qquad G(s) = \\dfrac{b}{s+a}``
 
+- `numpar=3`: modelo de segundo orden con dos polos reales, con tres parámetros
+  (``a_1``, ``a_2`` y ``b``):
+
+  ``\\qquad G(s) = \\dfrac{b}{(s+a_1)(s+a_2)}``
+
+Para obtener el modelo se realiza un experimento en lazo abierto, aplicando como
+entrada una onda binaria pseudoaleatoria (PRBS) cuyos valores se ajustan
+automáticamente para que el punto de operación especificado, `yop` (en °/s), quede
+aproximadamente centrado, tal como se ilustra en la figura siguiente:
 
 ![Identificación con PRBS de la plataforma DCMotor](../../assets/get_model_prbs.png)
 
@@ -799,30 +806,33 @@ Los parámetros de esta función son los siguientes:
 # Argumentos de palabra clave
 - `yop::Real=400`: punto de operación (velocidad, en °/s) alrededor del cual
   se obtiene el modelo lineal.
-- `sigma::Real=100`: desviación máxima (y minima) estimada (en °/s) de la velocidad
-   angular en relación al punto de operación `yop`.  La función asigna automáticamente (mediante de la función [`volts_from_speed`](@ref))
-   los valores  mínimo y y máximo de la señal PRBS que producen una desviación `sigma` desde el punto `yop`.  
-  
-- `usefile::Bool=false`: si es `true`, usa los datos del último experimento
-  guardado en `datafiles/DCmotor_prbs_open_exp.csv` para estimar los parámetros
-  del modelo de primer orden ``G(s)=b/(s+a)``.
-
-
+- `numpar::Int=2`: número de parámetros del modelo a estimar: `2` para el modelo de
+  primer orden ``b/(s+a)`` o `3` para el modelo de dos polos ``b/((s+a_1)(s+a_2))``.
+- `sigma::Real=100`: desviación máxima estimada (en °/s) de la velocidad angular
+  alrededor del punto de operación `yop`. La función asigna automáticamente (mediante
+  la función [`volts_from_speed`](@ref)) los valores mínimo y máximo de la señal PRBS
+  que producen una desviación `sigma` desde el punto `yop`.
+- `usefile::Bool=false`: si es `true`, no se realiza un experimento nuevo, sino que se
+  usan los datos del último experimento PRBS guardado en
+  `datafiles/DCmotor_prbs_open_exp.csv` para estimar los parámetros del modelo.
 
 # Retorna
-- `G1::ControlSystemsBase.TransferFunction`: modelo de primer
-  orden de la velocidad angular, identificado a partir de los datos PRBS.
-- `L::Float64`: retardo, fijado en un periodo de muestreo (0.02s).
+- `G1::ControlSystemsBase.TransferFunction`: modelo de la velocidad angular
+  identificado a partir de los datos PRBS (de uno o dos polos, según `numpar`).
+- `L::Float64`: retardo, fijado en un periodo de muestreo (0.02 s).
 
 # Notas
-- Para obtener la identificación del modelo,  se filtran los datos  y se ajusta un modelo
-  ARX discreto de orden (1,1) con retardo de una muestra, usando
-  el estimador de
-  [ControlSystemIdentification.jl](https://github.com/baggepinnen/ControlSystemIdentification.jl).
-  El modelo discreto resultante se convierte a tiempo continuo con la función `c2d`.
-- Al finalizar, se muestra una gráfica que compara la salida experimental con la simulada por el
-  modelo (indicando el porcentaje de ajuste, o *FIT*), y se guardan los
-  parámetros en `datafiles/DCmotor_fo_model_2p.csv` (o `_3p.csv` si `numpar=3`).
+- Con `numpar=2` se ajusta un modelo ARX discreto de orden (1,1) con retardo de una
+  muestra, usando el estimador de
+  [ControlSystemIdentification.jl](https://github.com/baggepinnen/ControlSystemIdentification.jl),
+  y el modelo discreto resultante se convierte a tiempo continuo con la función `d2c`.
+- Con `numpar=3` se realiza una identificación de caja gris con el método del error de
+  predicción (`structured_pem` de ControlSystemIdentification.jl), estimando
+  directamente ``a_1``, ``a_2`` y ``b`` del modelo continuo.
+- Al finalizar, se muestra una gráfica que compara la salida experimental con la
+  simulada por el modelo (indicando el porcentaje de ajuste, o *FIT*), y se guardan los
+  parámetros estimados. Luego se pueden recuperar con [`tf`](@ref), [`ss`](@ref) o
+  [`get_last_model`](@ref) usando el mismo valor de `numpar`.
 
 # Ejemplo
 Primero, asegúrese de haber importado el paquete DCMotor y de haber
@@ -845,6 +855,13 @@ PRBS, así:
 
 ```julia
 G, L = get_model_prbs(sys; yop=360);
+```
+
+o, si se desea el modelo de dos polos:
+
+```julia
+G, L = get_model_prbs(sys; yop=360, numpar=3);
+G_ang = tf(sys; output=:angle, numpar=3)    # modelo de ángulo con los mismos parámetros
 ```
 """
 function get_model_prbs(sys::MotorSystem; 
@@ -910,7 +927,7 @@ function get_model_prbs(sys::MotorSystem;
         # a, b = optim_model.res.minimizer.p
         # G1 = b/(s+a)
 
-        # if decide to change tO ARX
+        # if I decide to change to ARX
         na = 1
         nb = 1
         Gh = arx(data, na, nb, inputdelay=1, estimator = wtls_estimator(data.y, na, nb)) 
