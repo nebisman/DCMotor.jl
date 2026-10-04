@@ -6,7 +6,7 @@ G = tf(sys, output=:speed)
 
 ## Diseño por localización de polos
 # Frecuencia natural y factos de amortiguamiento
-ωn = 24
+ωn = 15
 ζ = .7
 s = tf("s")
 T= ωn^2/(s^2 + 2*ζ*ωn*s + ωn^2)
@@ -20,7 +20,7 @@ stepinfo(result,T)
 
 ## Ahora diseñamos un PI para velocidad con Loopshaping, 
 
-ωgc = 25
+ωgc = 15
 # Note que incluimos el retardo del muestreo digital, por lo cual se requiere 
 # el paquete completo ControlSystems
 using ControlSystems
