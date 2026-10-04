@@ -1,5 +1,5 @@
 
-# definicion del sistema
+## definicion del sistema
 using DCMotor
 sys = MotorSystem();
 Gang = tf(sys; output=:angle)
@@ -17,7 +17,7 @@ Kd = ((2ζ + n) * ωn - a) / b
 Kp = (1 + 2n * ζ) * ωn^2 / b
 Ki = n * ωn^3 / b
 set_pid(sys;  kp=Kp, ki=Ki, kd=Kd, beta=0, Tf=1e-4, output=:angle)
-result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 1, t1 =2);
+result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 1, t1 = 12/(ζ * ωn));
 stepinfo(result, T)
 
 

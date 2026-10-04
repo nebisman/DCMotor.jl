@@ -19,7 +19,7 @@ end
 # ╔═╡ b3000000-0000-0000-0000-000000000003
 begin
     using Pkg
-    Pkg.activate("/home/leonardo/datos/share_desktop/proyecto_julia/DCMotor.jl")
+    Pkg.activate()
     using ControlSystems, Plots, PlutoUI
     using DCMotor    
     md"Paquetes cargados desde el entorno local."

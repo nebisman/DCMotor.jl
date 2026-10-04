@@ -19,7 +19,7 @@ end
 # ╔═╡ 23fce5ad-e993-4001-b4ff-742957cbd59e
 begin
     using Pkg
-	Pkg.activate("/home/leonardo/datos/share_desktop/proyecto_julia/DCMotor.jl")
+	Pkg.activate()
 	using PlutoUI, PlutoPlotly, Printf   
     using DCMotor
 	md"Paquetes cargados desde el entorno local."
