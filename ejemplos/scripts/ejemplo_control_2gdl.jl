@@ -25,8 +25,8 @@ stepinfo(result, T)
 
 
 ## Ahora vamos a implementar una función cuadrática óptima
-Tlq, Gur = lqmodel(G_ang, .0015)
-C = cont2dof(G_ang, Tlq, 2 , [-50,-55])
+Tlq, Gur = lqmodel(G_ang, .001)
+C = cont2dof(G_ang, Tlq, 3 , [-50,-55, -60])
 set_controller(sys, C; output=:angle)
 result = step_closed(sys; r0 = 0, r1 = 90,  t0 = 0.5, t1 =2); 
 stepinfo(result, Tlq)   
