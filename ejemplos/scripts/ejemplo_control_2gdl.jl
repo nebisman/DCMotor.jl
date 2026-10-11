@@ -8,13 +8,13 @@
 ## definiciones
 using DCMotor
 sys = MotorSystem();
-G_ang = tf(sys, output=:angle)
+G_ang = tf(sys, output=:angle, numpar=3)
 
 ## Vamos a implementar la siguiente funcion itae
 ω₀ = 20
 s=tf("s")
 T = ω₀^3/(s^3 + 1.75*s^2*ω₀ + 2.15*s*ω₀^2 + ω₀^3)
-C = cont2dof(G_ang, T, 2, [-4*ω₀])
+C = cont2dof(G_ang, T, 2, [-4*ω₀ ,-4*ω₀])
 
 # respuesta del controlador
 set_controller(sys, C; output=:angle)

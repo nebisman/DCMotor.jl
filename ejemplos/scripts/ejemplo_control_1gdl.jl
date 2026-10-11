@@ -8,11 +8,11 @@
 ## definiciones
 using DCMotor
 sys = MotorSystem();
-G = tf(sys; output=:angle)
+G = tf(sys; output=:angle, numpar=3)
 
 
 ## diseño y carga del controlador
-polos_lc = [-10+10im, -10-10im, -80]
+polos_lc = [-10+10im, -10-10im, -80, -70, -80]
 C = cont1dof(G, polos_lc) 
 set_controller(sys, C; output=:angle)
 

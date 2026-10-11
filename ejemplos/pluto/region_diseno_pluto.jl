@@ -19,7 +19,7 @@ end
 # ╔═╡ 23fce5ad-e993-4001-b4ff-742957cbd59e
 begin
     using Pkg
-	Pkg.activate()
+    Pkg.activate()# entorno nuevo y vacío, distinto al del paquete
 	using PlutoUI, PlutoPlotly, Printf   
     using DCMotor
 	md"Paquetes cargados desde el entorno local."
@@ -54,7 +54,7 @@ respuesta al escalón.
 # ╔═╡ 3518a593-0cb1-4a23-9c3f-98dc4d8e7159
 begin
 	sys = MotorSystem();
-	Gang = tf(sys; output=:angle)
+	Gang = tf(sys; numpar=3)
 	md""
 end
 
@@ -281,7 +281,7 @@ let
 	ωn_act = hypot(x_act, y_act)
 	ζ_act = -x_act / ωn_act
     T_act  = n*ωn_act^3/((s+n*ωn_act)*(s^2 + 2*ζ_act*ωn_act*s +ωn_act^2))
-	C = cont2dof(Gang, T_act, 2, [-80])
+	C = cont2dof(Gang, T_act, 3, [-50, -50, -50])
 	set_controller(sys, C; output=:angle)
 	result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 0.5, t1 = 20/(ωn_act*ζ_act));
 	stepinfo(result, T_act, risetime_th = (0.1, 0.9))	
@@ -303,4 +303,4 @@ end
 # ╟─9850a008-cf41-4def-a4d2-fc33a15fbeda
 # ╠═c8fc4c85-dd44-40d9-af5d-f5c752ad110d
 # ╟─1f2715fa-1953-436d-9178-8b75cce17ffd
-# ╟─24242526-9406-4b86-ac62-f7227a5936cc
+# ╠═24242526-9406-4b86-ac62-f7227a5936cc
