@@ -208,21 +208,21 @@ funciones de identificación  [`get_model_step`](@ref) o [`get_model_prbs`](@ref
 Así podrá invocar la función de transferencia del sistema con la función `tf`:
 
 ```julia
-G_angle = tf(sys, output=:speed)
+G_ang = tf(sys, output=:angle, numpar=3)
 ```
 
 Luego, defina los polos deseados de lazo cerrado y diseñe el controlador:
 
 ```julia
-polos_lc = [-10+10im, -10-10im, -80]
-C = cont1dof(G, polos_lc) 
+polos_lc = [-10+10im, -10-10im, -80, -70, -80]
+C = cont1dof(G_ang, polos_lc)
 set_controller(sys, C; output=:angle)
 
 
 # Aqui vemos la respuesta al escalon en lazo cerrado
-T = feedback(C*G, 1)
+T = feedback(C*G_ang, 1)
 result = step_closed(sys; r0 = 0, r1 =100,  t0 = 0.5, t1 =2); 
-stepinfo(result,T)
+stepinfo(result, T)
 ```
 """
 function cont1dof(G, poles)
