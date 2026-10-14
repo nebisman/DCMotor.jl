@@ -48,17 +48,17 @@ funciones de identificación  [`get_model_step`](@ref) o [`get_model_prbs`](@ref
 Así podrá invocar la función de transferencia del sistema con la función `tf`:
 
 ```julia
-G_angle = tf(sys)
+G_ang = tf(sys, numpar=3, output=:angle)
 ```
 
 Luego, defina la respuesta de lazo cerrado deseada (por ejemplo, un
 polinomio ITAE de tercer orden) y diseñe el controlador de 2-GDL:
 
 ```julia
-s = tf("s");
 ω₀ = 20
-T = ω₀^3 / (s^3 + 1.75*s^2*ω₀ + 2.15*s*ω₀^2 + ω₀^3)
-C = cont2dof(G_angle, T, 2, [-80])
+s=tf("s")
+T = itaemodel(3, ω₀; type=:pos)
+C = cont2dof(G_ang, T, 2, [-4*ω₀ ,-4*ω₀])
 
 # ahora probamos la respuesta del controlador
 set_controller(sys, C; output=:angle)
