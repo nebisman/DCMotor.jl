@@ -14,10 +14,10 @@ G_ang = tf(sys, output=:angle, numpar=3)
 ω₀ = 20
 s=tf("s")
 T = itaemodel(3, ω₀; type=:pos)
-C = cont2dof(G_ang, T, 2, [-4*ω₀ ,-4*ω₀])
+C = cont2dof(G_ang, T, 2, [-80, -90])
 
 # respuesta del controlador
-set_controller(sys, C; output=:angle)
+set_controller(sys, C; output=:angle, deadzone =0)
 result = step_closed(sys; r0 = 0, r1 = 90,  t0 = 0.5, t1 =2); 
 stepinfo(result, T)
  

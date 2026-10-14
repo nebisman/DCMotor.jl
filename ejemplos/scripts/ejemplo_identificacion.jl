@@ -20,4 +20,4 @@ t, u, y = step_open(sys; u0=1, u1=3.5, t0=1.0, t1=1.0)
 G, L = get_model_step(sys; yop=400)
 
 ##  5. Podemos estimar los parámetros de la planta por respuesta a una señal PRBS
-G, L = get_model_prbs(sys; numpar=2, yop=400)
+G, L = get_model_prbs(sys; numpar=3, yop=400)

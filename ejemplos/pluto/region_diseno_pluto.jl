@@ -19,7 +19,7 @@ end
 # ╔═╡ 23fce5ad-e993-4001-b4ff-742957cbd59e
 begin
     using Pkg
-    Pkg.activate()# entorno nuevo y vacío, distinto al del paquete
+    Pkg.activate()  # entorno nuevo y vacío, distinto al del paquete
 	using PlutoUI, PlutoPlotly, Printf   
     using DCMotor
 	md"Paquetes cargados desde el entorno local."
@@ -281,7 +281,7 @@ let
 	ωn_act = hypot(x_act, y_act)
 	ζ_act = -x_act / ωn_act
     T_act  = n*ωn_act^3/((s+n*ωn_act)*(s^2 + 2*ζ_act*ωn_act*s +ωn_act^2))
-	C = cont2dof(Gang, T_act, 3, [-50, -50, -50])
+	C = cont2dof(Gang, T_act, 2, [-50, -50])
 	set_controller(sys, C; output=:angle)
 	result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 0.5, t1 = 20/(ωn_act*ζ_act));
 	stepinfo(result, T_act, risetime_th = (0.1, 0.9))	
