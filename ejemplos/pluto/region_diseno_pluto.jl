@@ -19,7 +19,7 @@ end
 # ╔═╡ 23fce5ad-e993-4001-b4ff-742957cbd59e
 begin
     using Pkg
-    Pkg.activate()  # entorno nuevo y vacío, distinto al del paquete
+    Pkg.activate()  # 
 	using PlutoUI, PlutoPlotly, Printf   
     using DCMotor
 	md"Paquetes cargados desde el entorno local."
@@ -93,6 +93,9 @@ end
 
 # ╔═╡ c8fc4c85-dd44-40d9-af5d-f5c752ad110d
 screen_pluto()
+
+# ╔═╡ bbfe8535-30f1-44b2-aa3e-23e5a261a696
+
 
 # ╔═╡ 1f2715fa-1953-436d-9178-8b75cce17ffd
 @bind click_polo let
@@ -281,7 +284,7 @@ let
 	ωn_act = hypot(x_act, y_act)
 	ζ_act = -x_act / ωn_act
     T_act  = n*ωn_act^3/((s+n*ωn_act)*(s^2 + 2*ζ_act*ωn_act*s +ωn_act^2))
-	C = cont2dof(Gang, T_act, 2, [-50, -50])
+	C = cont2dof(Gang, T_act, 2, [-80, -80])
 	set_controller(sys, C; output=:angle)
 	result = step_closed(sys; r0 = 0, r1 = 100,  t0 = 0.5, t1 = 20/(ωn_act*ζ_act));
 	stepinfo(result, T_act, risetime_th = (0.1, 0.9))	
@@ -302,5 +305,6 @@ end
 # ╟─f82e1b85-b33f-43c6-8092-7991ec79133e
 # ╟─9850a008-cf41-4def-a4d2-fc33a15fbeda
 # ╠═c8fc4c85-dd44-40d9-af5d-f5c752ad110d
+# ╠═bbfe8535-30f1-44b2-aa3e-23e5a261a696
 # ╟─1f2715fa-1953-436d-9178-8b75cce17ffd
 # ╠═24242526-9406-4b86-ac62-f7227a5936cc
