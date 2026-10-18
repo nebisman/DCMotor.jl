@@ -11,7 +11,7 @@ sys = MotorSystem();
 G_ang = tf(sys, output=:angle, numpar=3)
 
 ## Vamos a implementar la siguiente funcion itae
-ω₀ = 25
+ω₀ = 20
 s=tf("s")
 T = itaemodel(3, ω₀; type=:pos)
 C = cont2dof(G_ang, T, 2, [-80, -90])
