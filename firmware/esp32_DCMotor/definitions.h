@@ -498,6 +498,7 @@ void defaultControl(){
 
 
 
+
 void  onCommandReceived(char* lastTopic, byte* lastPayload) {
    
     JsonDocument doc;
@@ -655,9 +656,10 @@ void  onCommandReceived(char* lastTopic, byte* lastPayload) {
                total_time, (total_time-1) * h);
         #endif
         
-        vTaskResume(h_publishStateTask);
+      
         reset_int = true;
         vTaskResume(h_identifyTask);
+        vTaskResume(h_publishStateTask);
     }
     else if(strstr(lastTopic, USER_SYS_STEP_OPEN )){
         codeTopic = USER_SYS_STEP_CLOSED_INT;
@@ -674,9 +676,10 @@ void  onCommandReceived(char* lastTopic, byte* lastPayload) {
                high_val, (float) (points_high * h), (float) (points_low * h));
         #endif
         
-        vTaskResume(h_publishStateTask);
         reset_int = true;
         vTaskResume(h_stepOpenTask);
+        vTaskResume(h_publishStateTask);
+
     }
 
     else if(strstr(lastTopic, USER_SYS_PROFILE_CLOSED)){
@@ -736,7 +739,7 @@ static void onSerialReceive() {
  *   Line 2 – JSON payload,  e.g. {"kp":"3f800000","ki":"00000000",...}
  * --------------------------------------------------------------- */
 static void serialCommandTask(void *pvParameters) {
-    static char topicBuf[128];
+    static char topicBuf[200];
     static char payloadBuf[2048];
 
     // Register the ISR callback now that the task handle is valid   
