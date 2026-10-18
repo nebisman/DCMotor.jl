@@ -499,8 +499,7 @@ void defaultControl(){
 
 
 
-void  onCommandReceived(char* lastTopic, byte* lastPayload) {
-   
+void  onCommandReceived(char* lastTopic, byte* lastPayload) {   
     JsonDocument doc;
     if (strstr(lastTopic, USER_SYS_SET_PID)) {
         deserializeJson(doc, lastPayload);
@@ -600,7 +599,6 @@ void  onCommandReceived(char* lastTopic, byte* lastPayload) {
         #if DEBUG
         printf("Reference has been set to %0.2f degrees \n", reference);
         #endif
-        //reset_int = true;
         defaultControl();
     }
     else if (strstr(lastTopic, USER_SYS_STEP_CLOSED )) {
@@ -739,7 +737,7 @@ static void onSerialReceive() {
  *   Line 2 – JSON payload,  e.g. {"kp":"3f800000","ki":"00000000",...}
  * --------------------------------------------------------------- */
 static void serialCommandTask(void *pvParameters) {
-    static char topicBuf[200];
+    static char topicBuf[256];
     static char payloadBuf[2048];
 
     // Register the ISR callback now that the task handle is valid   
