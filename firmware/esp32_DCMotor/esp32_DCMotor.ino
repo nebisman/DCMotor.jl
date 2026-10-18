@@ -673,7 +673,7 @@ void setup() {
             "User command IOT",
             8192,
             NULL,
-            22,
+            18,
             &h_publishStateTask,
             CORE_COMM
     );
@@ -711,7 +711,7 @@ void setup() {
             "PID control",
             8192,
             NULL,
-            19,
+            20,
             &h_stateControlTask,
             CORE_CONTROL
     );
@@ -738,7 +738,7 @@ void setup() {
             "serial command",
             8192,
             nullptr,
-            23,
+            22,
             &h_serialCommandTask,
             CORE_COMM
     );

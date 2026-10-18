@@ -20,7 +20,6 @@ C = cont2dof(G_ang, T, 2, [-80, -90])
 set_controller(sys, C; output=:angle)
 result = step_closed(sys; r0 = 0, r1 = 90,  t0 = 0.5, t1 =2); 
 stepinfo(result, T)
- 
 
 
 
