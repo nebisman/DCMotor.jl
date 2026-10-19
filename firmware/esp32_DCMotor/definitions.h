@@ -47,6 +47,8 @@
 
 // These are the protection pins for the driver
 #define DRIVER_ON 21
+#define DRIVER_FAULT 46
+#define TEMP_PWM  17
 
 
 
@@ -428,6 +430,9 @@ dispLed.setPixelColor(0, color );
 dispLed.setBrightness(20);
 dispLed.show();
 }
+
+
+
 
 
 
@@ -858,6 +863,27 @@ float compDeadZone(float var, float dz){
 }
 
 void setup_peripherals(void){
+
+
+    
+    // first test if the proper lab is attached
+    pinMode(DRIVER_ON, OUTPUT);
+    digitalWrite(DRIVER_ON, HIGH);    
+    pinMode(DRIVER_FAULT, INPUT);
+
+    
+    // while (digitalRead(DRIVER_FAULT)==false){
+    //     Adafruit_NeoPixel dispLed2(1, 17, NEO_GRB); // connection to rgb leds that display temperature
+    //     pinMode(PIN_AIN1, OUTPUT);
+    //     digitalWrite(PIN_AIN1, LOW);   
+    //     pinMode(PIN_AIN1, OUTPUT);
+    //     digitalWrite(PIN_AIN1, LOW);  
+    //     pinMode(TEMP_PWM, OUTPUT);
+    //    digitalWrite(TEMP_PWM, LOW);
+    // } 
+    
+
+
     // Setting serial port for receiving commands from the user through USB
     Serial.begin(BAUDRATE);
     Serial.onReceive(onSerialReceive);
@@ -888,13 +914,12 @@ void setup_peripherals(void){
 
     pinMode( CH_ENC_A_POT, INPUT_PULLUP);
     pinMode( CH_ENC_B_POT, INPUT_PULLUP);
-    pinMode(DRIVER_ON, OUTPUT);
-    digitalWrite(DRIVER_ON, HIGH);
+
     encoderPot.attachFullQuad(CH_ENC_A_POT, CH_ENC_B_POT);
     encoderPot.clearCount();
     encoderPot.setFilter(1023);
 
-   // setting rgb led
+      // setting rgb led
     dispLed.begin();
     dispLed.clear();
     dispLed.show();
@@ -902,6 +927,6 @@ void setup_peripherals(void){
 
 
 
-    // Create the task for receiving commands through USB 
+
 
     }
