@@ -14,7 +14,7 @@ G_ang = tf(sys, output=:angle, numpar=3)
 ω₀ = 20
 s=tf("s")
 T = itaemodel(3, ω₀; type=:pos)
-C = cont2dof(G_ang, T, 2, [-80, -90])
+C = cont2dof(G_ang, T, 2, [-90, -80])
 
 # respuesta del controlador
 set_controller(sys, C; output=:angle)
